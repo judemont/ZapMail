@@ -11,7 +11,8 @@ export interface NostrMessage {
 export interface DecryptedMessage {
   id: string;
   from: string;
-  to: string;
+  to: string; // Primary recipient (for backward compatibility)
+  toRecipients?: string[]; // All To recipients
   subject: string;
   content: string;
   timestamp: number;

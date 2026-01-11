@@ -193,6 +193,18 @@ export class NostrService {
     return nip19.npubEncode(this.publicKey);
   }
 
+  decodeNpub(npub: string): string | null {
+    try {
+      const decoded = nip19.decode(npub);
+      if (decoded.type === 'npub') {
+        return decoded.data;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   isLoggedIn(): boolean {
     return this.publicKey !== null;
   }
@@ -295,12 +307,19 @@ export class NostrService {
     }
   }
 
-  private saveSentMessageLocally(recipientPubkey: string, subject: string, content: string, replyTo?: string) {
+  private saveSentMessageLocally(
+    recipientPubkey: string,
+    subject: string,
+    content: string,
+    toRecipients: string[],
+    replyTo?: string
+  ) {
     try {
       const sentMessage: DecryptedMessage = {
         id: Math.random().toString(36).substring(2) + Date.now().toString(36),
         from: this.publicKey!,
         to: recipientPubkey,
+        toRecipients: toRecipients.length > 0 ? toRecipients : undefined,
         subject,
         content,
         timestamp: Date.now(),
@@ -370,8 +389,19 @@ export class NostrService {
     }
 
     try {
-      const [name, domain] = nip05.split('@');
-      if (!name || !domain) return null;
+      let name: string;
+      let domain: string;
+      
+      // Handle both "user@domain" and just "domain" (which becomes "_@domain")
+      if (nip05.includes('@')) {
+        [name, domain] = nip05.split('@');
+      } else {
+        // Just domain provided, use root identifier
+        name = '_';
+        domain = nip05;
+      }
+      
+      if (!domain) return null;
 
       const url = `https://${domain}/.well-known/nostr.json?name=${name}`;
       const response = await fetch(url);
@@ -388,11 +418,46 @@ export class NostrService {
     return null;
   }
 
-  async sendMessage(recipientPubkey: string, subject: string, content: string, replyTo?: string): Promise<boolean> {
+  async sendMessage(
+    toRecipients: string[],
+    subject: string,
+    content: string,
+    replyTo?: string
+  ): Promise<boolean> {
     if (!this.publicKey) {
       throw new Error('Not logged in');
     }
 
+    if (toRecipients.length === 0) {
+      throw new Error('At least one recipient is required');
+    }
+
+    try {
+      // Send individual encrypted message to each recipient
+      const sendPromises = toRecipients.map(recipientPubkey => 
+        this.sendToSingleRecipient(recipientPubkey, subject, content, toRecipients, replyTo)
+      );
+      
+      await Promise.all(sendPromises);
+      
+      // Save sent message locally (use first To recipient as primary for compatibility)
+      const primaryRecipient = toRecipients[0];
+      this.saveSentMessageLocally(primaryRecipient, subject, content, toRecipients, replyTo);
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      return false;
+    }
+  }
+
+  private async sendToSingleRecipient(
+    recipientPubkey: string,
+    subject: string,
+    content: string,
+    toRecipients: string[],
+    replyTo?: string
+  ): Promise<void> {
     try {
       // Create rumor (kind 14 event)
       const rumor: any = {
@@ -401,6 +466,8 @@ export class NostrService {
         tags: [
           ['p', recipientPubkey],
           ['subject', subject],
+          // Add all To recipients as tags
+          ...toRecipients.map(to => ['to', to]),
           ...(replyTo ? [['e', replyTo, '', 'reply']] : [])
         ],
         created_at: Math.floor(Date.now() / 1000),
@@ -504,14 +571,9 @@ export class NostrService {
       
       // Publish the wrapped event
       await this.pool.publish(RELAYS, wrappedEvent);
-
-      // Save sent message locally (NIP-17 doesn't allow retrieving sent messages)
-      this.saveSentMessageLocally(recipientPubkey, subject, content, replyTo);
-
-      return true;
     } catch (error) {
-      console.error('Failed to send message:', error);
-      return false;
+      console.error('Failed to send to recipient:', recipientPubkey, error);
+      throw error;
     }
   }
 
@@ -653,11 +715,16 @@ export class NostrService {
           const replyTo = replyTag ? replyTag[1] : undefined;
           const recipientTag = rumor.tags.find((t: string[]) => t[0] === 'p');
           const recipient = recipientTag ? recipientTag[1] : this.publicKey;
+          
+          // Extract To recipients from tags
+          const toTags = rumor.tags.filter((t: string[]) => t[0] === 'to');
+          const toRecipients = toTags.length > 0 ? toTags.map((t: string[]) => t[1]) : undefined;
 
           newMessages.push({
             id: rumor.id || wrappedEvent.id,
             from: rumor.pubkey,
             to: recipient,
+            toRecipients,
             subject,
             content: rumor.content,
             timestamp: rumor.created_at * 1000,
@@ -750,6 +817,10 @@ export class NostrService {
 
     // Prioritize verified NIP-05 first
     if (profile.nip05 && profile.nip05valid) {
+      // If it's a root identifier (_@domain), display as just domain
+      if (profile.nip05.startsWith('_@')) {
+        return profile.nip05.slice(2);
+      }
       return profile.nip05;
     }
 
@@ -788,12 +859,56 @@ export class NostrService {
     if (query.length < 2) return [];
 
     try {
+      let decodedPubkey: string | null = null;
+      const searchTerm = query.toLowerCase();
+      
+      // Try to decode if it looks like an npub or hex pubkey
+      if (searchTerm.startsWith('npub1')) {
+        decodedPubkey = this.decodeNpub(query);
+      } else if (searchTerm.length === 64 && /^[0-9a-f]+$/i.test(searchTerm)) {
+        // It's a hex pubkey
+        decodedPubkey = searchTerm;
+      }
+      
+      // If we have a decoded pubkey, search for that specific profile
+      if (decodedPubkey) {
+        try {
+          // Query specifically for this author's profile
+          const events = await this.pool.querySync(RELAYS, {
+            kinds: [0],
+            authors: [decodedPubkey],
+            limit: 1
+          });
+          
+          if (events && events.length > 0) {
+            const profile = JSON.parse(events[0].content);
+            return [{
+              pubkey: decodedPubkey,
+              profile: profile
+            }];
+          } else {
+            // No profile found, but return the pubkey anyway
+            return [{
+              pubkey: decodedPubkey,
+              profile: undefined
+            }];
+          }
+        } catch (err) {
+          console.error('Failed to fetch profile for pubkey:', err);
+          // Return the pubkey anyway even if profile fetch fails
+          return [{
+            pubkey: decodedPubkey,
+            profile: undefined
+          }];
+        }
+      }
+      
+      // Otherwise do a general profile search
       const events = await this.pool.querySync(RELAYS, {
         kinds: [0], // Profile metadata
         limit: limit * 2, // Get more to filter
       });
 
-      const searchTerm = query.toLowerCase();
       const matches: Contact[] = [];
       const seenPubkeys = new Set<string>();
 

@@ -15,6 +15,15 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
   const [threadProfiles, setThreadProfiles] = useState<Map<string, NostrProfile>>(new Map());
 
+  // Helper to format recipient list
+  const formatRecipients = (recipients: string[] | undefined, profiles: Map<string, NostrProfile>): string => {
+    if (!recipients || recipients.length === 0) return '';
+    if (recipients.length === 1) {
+      return nostrService.getDisplayName(profiles.get(recipients[0]), recipients[0]);
+    }
+    return `${recipients.length} recipients`;
+  };
+
   const thread = useMemo(() => {
     const byId = new Map<string, DecryptedMessage>();
     for (const m of allMessages) byId.set(m.id, m);
@@ -66,15 +75,20 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
 
   useEffect(() => {
     const loadThreadProfiles = async () => {
-      const unique = Array.from(
-        new Set(
-          thread.flatMap((x) => [x.msg.from, x.msg.to]).filter((v) => typeof v === 'string' && v.length > 0)
-        )
-      );
+      const unique = new Set<string>();
+      
+      // Collect all pubkeys from thread messages
+      for (const { msg } of thread) {
+        unique.add(msg.from);
+        unique.add(msg.to);
+        if (msg.toRecipients) msg.toRecipients.forEach(r => unique.add(r));
+      }
+      
+      const uniqueArray = Array.from(unique).filter(v => typeof v === 'string' && v.length > 0);
       const map = new Map<string, NostrProfile>();
 
       // Keep this lightweight: threads are usually small; do sequential to avoid relay bursts.
-      for (const pubkey of unique) {
+      for (const pubkey of uniqueArray) {
         try {
           const p = await nostrService.getProfile(pubkey);
           if (p) map.set(pubkey, p);
@@ -245,7 +259,9 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
                 const toProfile = threadProfiles.get(m.to);
 
                 const fromName = nostrService.getDisplayName(fromProfile, m.from);
-                const toName = nostrService.getDisplayName(toProfile, m.to);
+                const toName = m.toRecipients && m.toRecipients.length > 1 
+                  ? formatRecipients(m.toRecipients, threadProfiles)
+                  : nostrService.getDisplayName(toProfile, m.to);
 
                 return (
                   <div
@@ -309,7 +325,9 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
                     </div>
                     <div className="text-xs lg:text-sm text-gray-600 truncate">
                       <span className="font-medium">To:</span>{' '}
-                      {nostrService.getDisplayName(threadProfiles.get(message.to), message.to)}
+                      {message.toRecipients && message.toRecipients.length > 1
+                        ? formatRecipients(message.toRecipients, threadProfiles)
+                        : nostrService.getDisplayName(threadProfiles.get(message.to), message.to)}
                     </div>
                     <div className="text-xs text-gray-500 font-mono truncate hidden lg:block">
                       {truncatePubkey(message.from)} → {truncatePubkey(message.to)}
