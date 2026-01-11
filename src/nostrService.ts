@@ -541,9 +541,7 @@ export class NostrService {
 
     try {
       // Report that we're starting to fetch
-      if (onProgress) {
-        onProgress(0, 100); // Show initial progress
-      }
+   
       
       // Determine fetch range
       // IMPORTANT: NIP-17 gift wrap events (kind 1059) may have randomized timestamps

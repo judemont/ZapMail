@@ -101,14 +101,14 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
         <img
           src={profile.picture}
           alt={name}
-          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+          className="w-8 h-8 lg:w-10 lg:h-10 rounded-full object-cover flex-shrink-0"
         />
       );
     }
 
     return (
-      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-        <span className="text-purple-600 font-semibold">{name[0]?.toUpperCase() ?? '?'}</span>
+      <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+        <span className="text-purple-600 font-semibold text-sm lg:text-base">{name[0]?.toUpperCase() ?? '?'}</span>
       </div>
     );
   };
@@ -141,22 +141,22 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
 
   return (
     <div className="flex-1 flex flex-col bg-white overflow-hidden">
-      <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center space-x-4 min-w-0 flex-1">
+      <div className="border-b border-gray-200 px-3 lg:px-6 py-3 lg:py-4 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center space-x-2 lg:space-x-4 min-w-0 flex-1">
           <button
             onClick={onBack}
-            className="p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
+            className="p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0 lg:hidden"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
         </div>
-        <div className="flex items-center space-x-2 flex-shrink-0">
+        <div className="flex items-center space-x-1 lg:space-x-2 flex-shrink-0">
           <button
             onClick={() => onReply(message)}
-            className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+            className="flex items-center space-x-1 lg:space-x-2 px-3 lg:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm lg:text-base"
           >
             <Reply className="w-4 h-4" />
-            <span>Reply</span>
+            <span className="hidden sm:inline">Reply</span>
           </button>
           <div className="relative">
             <button
@@ -228,16 +228,16 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
         {thread.length > 1 ? (
           <>
             {/* Subject Header */}
-            <div className="bg-purple-50 border-b border-purple-100 px-6 py-4">
-              <h1 className="text-2xl font-bold text-gray-900 break-words">{message.subject}</h1>
-              <div className="mt-2 text-sm text-purple-700 flex items-center">
-                <Reply className="w-4 h-4 mr-1" />
+            <div className="bg-purple-50 border-b border-purple-100 px-3 lg:px-6 py-3 lg:py-4">
+              <h1 className="text-lg lg:text-2xl font-bold text-gray-900 break-words">{message.subject}</h1>
+              <div className="mt-2 text-xs lg:text-sm text-purple-700 flex items-center">
+                <Reply className="w-3 h-3 lg:w-4 lg:h-4 mr-1" />
                 Thread ({thread.length} messages)
               </div>
             </div>
 
             {/* Thread */}
-            <div className="px-6 py-6 space-y-4">
+            <div className="px-3 lg:px-6 py-4 lg:py-6 space-y-3 lg:space-y-4">
               {thread.map(({ msg: m, depth }) => {
                 const isFocus = m.id === message.id;
 
@@ -250,37 +250,39 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
                 return (
                   <div
                     key={m.id}
-                    className={`rounded-lg border p-4 ${
+                    className={`rounded-lg border p-3 lg:p-4 ${
                       isFocus ? 'border-purple-300 bg-purple-50' : 'border-gray-200 bg-white'
                     }`}
-                    style={{ marginLeft: `${Math.min(depth * 24, 96)}px` }}
+                    style={{ marginLeft: `${Math.min(depth * 12, 48)}px` }}
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 min-w-0">
-                        {getAvatar(m.from)}
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-gray-900 break-words">
+                    <div className="flex items-start justify-between gap-2 lg:gap-4">
+                      <div className="flex items-start gap-2 lg:gap-3 min-w-0 flex-1">
+                        <div className="flex-shrink-0">
+                          {getAvatar(m.from)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs lg:text-sm font-semibold text-gray-900 break-words">
                             {m.subject}
-                            {depth > 0 && <span className="ml-2 text-xs text-purple-700">↪ Reply</span>}
-                            {isFocus && <span className="ml-2 text-xs text-purple-700">(selected)</span>}
+                            {depth > 0 && <span className="ml-1 lg:ml-2 text-xs text-purple-700">↪ Reply</span>}
+                            {isFocus && <span className="ml-1 lg:ml-2 text-xs text-purple-700">(selected)</span>}
                           </div>
-                          <div className="mt-1 text-sm text-gray-700 truncate">
+                          <div className="mt-1 text-xs lg:text-sm text-gray-700 truncate">
                             <span className="font-medium">From:</span> {fromName}
                           </div>
-                          <div className="text-sm text-gray-700 truncate">
+                          <div className="text-xs lg:text-sm text-gray-700 truncate">
                             <span className="font-medium">To:</span> {toName}
                           </div>
-                          <div className="mt-1 text-xs text-gray-500 font-mono truncate">
+                          <div className="mt-1 text-xs text-gray-500 font-mono truncate hidden lg:block">
                             {truncatePubkey(m.from)} → {truncatePubkey(m.to)}
                           </div>
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500 flex-shrink-0 whitespace-nowrap">
-                        {new Date(m.timestamp).toLocaleString()}
+                      <div className="text-xs text-gray-500 flex-shrink-0 whitespace-nowrap self-start">
+                        {new Date(m.timestamp).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
                       </div>
                     </div>
 
-                    <div className="mt-3 text-gray-800 whitespace-pre-wrap break-all leading-relaxed">
+                    <div className="mt-2 lg:mt-3 text-xs lg:text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed">
                       {m.content}
                     </div>
                   </div>
@@ -291,36 +293,38 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
         ) : (
           <>
             {/* Single message view */}
-            <div className="bg-purple-50 border-b border-purple-100 px-6 py-4">
-              <h1 className="text-2xl font-bold text-gray-900 break-words">{message.subject}</h1>
+            <div className="bg-purple-50 border-b border-purple-100 px-3 lg:px-6 py-3 lg:py-4">
+              <h1 className="text-lg lg:text-2xl font-bold text-gray-900 break-words">{message.subject}</h1>
             </div>
 
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3 min-w-0">
-                  {getAvatar(message.from)}
-                  <div className="min-w-0">
-                    <div className="font-semibold text-gray-900 truncate">
+            <div className="px-3 lg:px-6 py-3 lg:py-4 border-b border-gray-200">
+              <div className="flex items-start justify-between gap-2 lg:gap-4">
+                <div className="flex items-start gap-2 lg:gap-3 min-w-0 flex-1">
+                  <div className="flex-shrink-0">
+                    {getAvatar(message.from)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm lg:text-base font-semibold text-gray-900 truncate">
                       {nostrService.getDisplayName(threadProfiles.get(message.from), message.from)}
                     </div>
-                    <div className="text-sm text-gray-600 truncate">
+                    <div className="text-xs lg:text-sm text-gray-600 truncate">
                       <span className="font-medium">To:</span>{' '}
                       {nostrService.getDisplayName(threadProfiles.get(message.to), message.to)}
                     </div>
-                    <div className="text-xs text-gray-500 font-mono truncate">
+                    <div className="text-xs text-gray-500 font-mono truncate hidden lg:block">
                       {truncatePubkey(message.from)} → {truncatePubkey(message.to)}
                     </div>
                   </div>
                 </div>
-                <div className="text-sm text-gray-500 flex-shrink-0 whitespace-nowrap">
-                  {new Date(message.timestamp).toLocaleString()}
+                <div className="text-xs lg:text-sm text-gray-500 flex-shrink-0 whitespace-nowrap self-start">
+                  {new Date(message.timestamp).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
                 </div>
               </div>
             </div>
 
-            <div className="px-6 py-6">
+            <div className="px-3 lg:px-6 py-4 lg:py-6">
               <div className="prose max-w-none">
-                <div className="text-gray-800 whitespace-pre-wrap break-all leading-relaxed">
+                <div className="text-sm lg:text-base text-gray-800 whitespace-pre-wrap break-all leading-relaxed">
                   {message.content}
                 </div>
               </div>

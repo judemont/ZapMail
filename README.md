@@ -147,6 +147,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - [NIP-59 (Gift Wrap)](https://github.com/nostr-protocol/nips/blob/master/59.md) - Base gift wrapping spec
 - [nostr-tools](https://github.com/nbd-wtf/nostr-tools) - JavaScript library
 - [Email is Broken — Can Nostr Fix It?](https://habla.news/a/naddr1qvzqqqr4gupzppna0k8s3az5vx8l2rkfs80p5e46c52fmz938pvf5zrp0zwwtvz0qqsk2mtpd9kz66tn9438ymmtv4hz6ttrv9hz6mn0wd68yttxd9uz66t5e5vhcr) - Article explaining the vision
-
-
-```

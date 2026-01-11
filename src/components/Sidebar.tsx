@@ -36,13 +36,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const secondaryDisplay = nostrService.getSecondaryDisplay(userProfile);
 
   return (
-    <div className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col">
-      <div className="p-6 border-b border-gray-200">
+    <div className="w-64 lg:w-64 bg-gray-50 border-r border-gray-200 flex flex-col h-full">
+      <div className="p-4 lg:p-6 border-b border-gray-200">
         <div className="flex items-center space-x-2 mb-4">
           <div className="bg-purple-600 p-2 rounded-lg">
-            <Mail className="w-6 h-6 text-white" />
+            <Mail className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
           </div>
-          <h1 className="text-xl font-bold text-gray-800">ZapMail</h1>
+          <h1 className="text-lg lg:text-xl font-bold text-gray-800">ZapMail</h1>
         </div>
         
         {/* User Profile Display */}

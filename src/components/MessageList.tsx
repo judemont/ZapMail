@@ -126,30 +126,30 @@ export const MessageList: React.FC<MessageListProps> = ({
               <div
                 key={message.id}
                 onClick={() => onMessageSelect(message)}
-                className={`border-b border-gray-200 px-6 py-4 cursor-pointer hover:bg-gray-50 transition ${
+                className={`border-b border-gray-200 px-3 lg:px-6 py-3 lg:py-4 cursor-pointer hover:bg-gray-50 transition ${
                   selectedMessageId === message.id ? 'bg-blue-50' : ''
-                } ${isReply ? 'bg-gray-50 ml-8' : ''}`}
+                } ${isReply ? 'bg-gray-50 ml-4 lg:ml-8' : ''}`}
               >
-                <div className="flex items-start space-x-3">
+                <div className="flex items-start space-x-2 lg:space-x-3">
                   {profile?.picture ? (
                     <img 
                       src={profile.picture} 
                       alt={displayName}
-                      className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                      className="w-8 h-8 lg:w-10 lg:h-10 rounded-full object-cover flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <span className="text-purple-600 font-semibold">
+                    <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                      <span className="text-purple-600 font-semibold text-sm lg:text-base">
                         {displayName[0].toUpperCase()}
                       </span>
                     </div>
                   )}
                   
                   <div className="flex-1 min-w-0 overflow-hidden">
-                    <div className="flex justify-between items-start mb-1 gap-2">
+                    <div className="flex justify-between items-start mb-1 gap-1 lg:gap-2">
                       <div className="flex flex-col min-w-0 flex-1">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="font-semibold text-gray-900 truncate">
+                        <div className="flex items-center gap-1 lg:gap-2 min-w-0">
+                          <span className="font-semibold text-sm lg:text-base text-gray-900 truncate">
                             {displayName}
                           </span>
                           {profile?.nip05 && profile.nip05valid && (
@@ -167,10 +167,10 @@ export const MessageList: React.FC<MessageListProps> = ({
                         {formatTime(message.timestamp)}
                       </div>
                     </div>
-                    <div className="font-medium text-gray-800 mb-1 break-all line-clamp-2">
+                    <div className="font-medium text-sm lg:text-base text-gray-800 mb-1 break-all line-clamp-2">
                       {message.subject}
                     </div>
-                    <div className="text-sm text-gray-600 break-all line-clamp-2">
+                    <div className="text-xs lg:text-sm text-gray-600 break-all line-clamp-2">
                       {message.content}
                     </div>
                   </div>

@@ -18,6 +18,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState<{ current: number; total: number } | null>(null);
   const [replyToMessage, setReplyToMessage] = useState<DecryptedMessage | undefined>();
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const backgroundRefreshingRef = useRef(false);
 
   // Check if already logged in on mount
@@ -108,15 +109,31 @@ function App() {
 
   return (
     <div className="h-screen flex bg-gray-100">
-      <Sidebar
-        currentFolder={currentFolder}
-        onFolderChange={handleFolderChange}
-        onLogout={handleLogout}
-        messageCount={{
-          inbox: inboxMessages.length,
-          sent: sentMessages.length,
-        }}
-      />
+      {/* Mobile Sidebar Overlay */}
+      {showMobileSidebar && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setShowMobileSidebar(false)}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <div className={`fixed lg:static inset-y-0 left-0 z-50 transform transition-transform duration-300 lg:transform-none ${
+        showMobileSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      }`}>
+        <Sidebar
+          currentFolder={currentFolder}
+          onFolderChange={(folder) => {
+            handleFolderChange(folder);
+            setShowMobileSidebar(false);
+          }}
+          onLogout={handleLogout}
+          messageCount={{
+            inbox: inboxMessages.length,
+            sent: sentMessages.length,
+          }}
+        />
+      </div>
 
       <div className="flex-1 flex flex-col">
         {currentFolder === 'compose' ? (
@@ -134,16 +151,27 @@ function App() {
           <Donate onBack={() => setCurrentFolder('inbox')} />
         ) : (
           <div className="flex-1 flex overflow-hidden">
-            <div className="w-96 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0 flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-800 capitalize">
+            {/* Message List - hide on mobile when message is selected */}
+            <div className={`w-full lg:w-96 bg-white border-r border-gray-200 flex flex-col overflow-hidden ${
+              selectedMessage ? 'hidden lg:flex' : 'flex'
+            }`}>
+              <div className="px-4 lg:px-6 py-4 border-b border-gray-200 flex-shrink-0 flex items-center justify-between">
+                <button
+                  onClick={() => setShowMobileSidebar(true)}
+                  className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition mr-2"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+                <h2 className="text-lg lg:text-xl font-semibold text-gray-800 capitalize">
                   {currentFolder}
                 </h2>
                 <button
                   onClick={() => loadMessagesForeground(true)}
                   disabled={loading}
                   className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
-                  title="Rechercher nouveaux messages"
+                  title="Refresh messages"
                 >
                   <RefreshCw className={`w-5 h-5 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
                 </button>
@@ -179,7 +207,10 @@ function App() {
               )}
             </div>
 
-            <div className="flex-1">
+            {/* Message View - full screen on mobile, side by side on desktop */}
+            <div className={`flex-1 ${
+              selectedMessage ? 'flex' : 'hidden lg:flex'
+            }`}>
               {selectedMessage ? (
                 <MessageView 
                   message={selectedMessage} 
@@ -188,9 +219,9 @@ function App() {
                   onReply={handleReply}
                 />
               ) : (
-                <div className="h-full flex items-center justify-center text-gray-400">
+                <div className="h-full flex items-center justify-center text-gray-400 p-4">
                   <div className="text-center">
-                    <p className="text-lg">No message selected</p>
+                    <p className="text-base lg:text-lg">No message selected</p>
                     <p className="text-sm mt-2">Select a message to read</p>
                   </div>
                 </div>

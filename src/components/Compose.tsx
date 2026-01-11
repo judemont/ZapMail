@@ -182,20 +182,20 @@ export const Compose: React.FC<ComposeProps> = ({ onBack, onSent, replyTo }) => 
 
   return (
     <div className="flex-1 flex flex-col bg-white">
-      <div className="border-b border-gray-200 px-6 py-4 flex items-center space-x-4">
+      <div className="border-b border-gray-200 px-3 lg:px-6 py-3 lg:py-4 flex items-center space-x-2 lg:space-x-4">
         <button
           onClick={onBack}
           className="p-2 hover:bg-gray-100 rounded-lg transition"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h2 className="text-xl font-semibold text-gray-800">
+        <h2 className="text-lg lg:text-xl font-semibold text-gray-800">
           {replyTo ? 'Reply to Message' : 'New Message'}
         </h2>
       </div>
 
       <form onSubmit={handleSend} className="flex-1 flex flex-col">
-        <div className="p-6 space-y-4">
+        <div className="p-3 lg:p-6 space-y-3 lg:space-y-4">
           <div className="relative">
             <label htmlFor="recipient" className="block text-sm font-medium text-gray-700 mb-2">
               To (npub, hex pubkey, or NIP-05 address)
@@ -307,18 +307,18 @@ export const Compose: React.FC<ComposeProps> = ({ onBack, onSent, replyTo }) => 
           )}
         </div>
 
-        <div className="border-t border-gray-200 px-6 py-4 flex justify-end space-x-3">
+        <div className="border-t border-gray-200 px-3 lg:px-6 py-3 lg:py-4 flex justify-end space-x-2 lg:space-x-3">
           <button
             type="button"
             onClick={onBack}
-            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+            className="px-4 lg:px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm lg:text-base"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={sending}
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            className="px-4 lg:px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 text-sm lg:text-base"
           >
             <Send className="w-4 h-4" />
             <span>{sending ? 'Sending...' : 'Send'}</span>

@@ -8,30 +8,30 @@ interface AboutProps {
 export const About: React.FC<AboutProps> = ({ onBack }) => {
   return (
     <div className="flex-1 flex flex-col bg-white overflow-hidden">
-      <div className="border-b border-gray-200 px-6 py-4 flex items-center space-x-4 flex-shrink-0">
+      <div className="border-b border-gray-200 px-3 lg:px-6 py-3 lg:py-4 flex items-center space-x-2 lg:space-x-4 flex-shrink-0">
         <button
           onClick={onBack}
           className="p-2 hover:bg-gray-100 rounded-lg transition"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h2 className="text-xl font-semibold text-gray-800">About ZapMail</h2>
+        <h2 className="text-lg lg:text-xl font-semibold text-gray-800">About ZapMail</h2>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-3 lg:p-6">
         <div className="max-w-4xl mx-auto prose prose-purple">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="bg-purple-600 p-3 rounded-lg">
-              <Mail className="w-8 h-8 text-white" />
+          <div className="flex items-center space-x-3 mb-4 lg:mb-6">
+            <div className="bg-purple-600 p-2 lg:p-3 rounded-lg">
+              <Mail className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 m-0">ZapMail</h1>
-              <p className="text-gray-600 m-0">A Nostr-based Email Client</p>
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 m-0">ZapMail</h1>
+              <p className="text-sm lg:text-base text-gray-600 m-0">A Nostr-based Email Client</p>
             </div>
           </div>
 
-          <section className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Why ZapMail?</h2>
+          <section className="mb-6 lg:mb-8">
+            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-3 lg:mb-4">Why ZapMail?</h2>
             <p className="text-gray-700 mb-4">
               Email is fundamentally broken. While it was designed to be decentralized, in practice it has become 
               controlled by a handful of large providers like Google and Microsoft. Our emails are not private, 
@@ -60,33 +60,33 @@ export const About: React.FC<AboutProps> = ({ onBack }) => {
             </div>
           </section>
 
-          <section className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Key Features</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-purple-600 mb-2">🔒 End-to-End Encrypted</h3>
-                <p className="text-gray-700 text-sm">
+          <section className="mb-6 lg:mb-8">
+            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-3 lg:mb-4">Key Features</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
+              <div className="border border-gray-200 rounded-lg p-3 lg:p-4">
+                <h3 className="text-base lg:text-lg font-semibold text-purple-600 mb-2">🔒 End-to-End Encrypted</h3>
+                <p className="text-gray-700 text-xs lg:text-sm">
                   All messages are encrypted using NIP-17 with minimal metadata exposure. Only you and your 
                   recipient can read the messages.
                 </p>
               </div>
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-purple-600 mb-2">🌐 Truly Decentralized</h3>
-                <p className="text-gray-700 text-sm">
+              <div className="border border-gray-200 rounded-lg p-3 lg:p-4">
+                <h3 className="text-base lg:text-lg font-semibold text-purple-600 mb-2">🌐 Truly Decentralized</h3>
+                <p className="text-gray-700 text-xs lg:text-sm">
                   No single company controls your messages. Connect to multiple relays for redundancy and 
                   censorship resistance.
                 </p>
               </div>
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-purple-600 mb-2">✓ NIP-05 Verification</h3>
-                <p className="text-gray-700 text-sm">
+              <div className="border border-gray-200 rounded-lg p-3 lg:p-4">
+                <h3 className="text-base lg:text-lg font-semibold text-purple-600 mb-2">✓ NIP-05 Verification</h3>
+                <p className="text-gray-700 text-xs lg:text-sm">
                   Use human-readable identifiers like user@domain.com that are verified by domain providers 
                   without giving them control over your messages.
                 </p>
               </div>
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-purple-600 mb-2">📧 Email-like Interface</h3>
-                <p className="text-gray-700 text-sm">
+              <div className="border border-gray-200 rounded-lg p-3 lg:p-4">
+                <h3 className="text-base lg:text-lg font-semibold text-purple-600 mb-2">📧 Email-like Interface</h3>
+                <p className="text-gray-700 text-xs lg:text-sm">
                   Familiar inbox/sent structure with subjects, formal message composition, and threading. 
                   Perfect for professional communication.
                 </p>
