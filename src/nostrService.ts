@@ -118,9 +118,15 @@ export class NostrService {
 
       const auth = JSON.parse(stored);
       if (auth.type === 'extension') {
-        // Extension login will be attempted when needed
-        this.publicKey = auth.publicKey;
-        this.usingExtension = true;
+        // Verify extension is actually available
+        if (window.nostr) {
+          this.publicKey = auth.publicKey;
+          this.usingExtension = true;
+        } else {
+          console.warn('Extension auth stored but window.nostr not available');
+          // Clear the stored session since extension is not available
+          localStorage.removeItem('zapmail_auth');
+        }
       } else if (auth.type === 'nsec' && auth.encrypted) {
         const nsec = await this.decryptData(auth.encrypted);
         this.login(nsec);
@@ -185,6 +191,74 @@ export class NostrService {
 
   isLoggedIn(): boolean {
     return this.publicKey !== null;
+  }
+
+  private getCacheKey(): string {
+    return `zapmail_messages_${this.publicKey}`;
+  }
+
+  private getLastFetchKey(): string {
+    return `zapmail_last_fetch_${this.publicKey}`;
+  }
+
+  private loadMessagesFromCache(): DecryptedMessage[] {
+    try {
+      const cacheKey = this.getCacheKey();
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (error) {
+      console.error('Failed to load messages from cache:', error);
+    }
+    return [];
+  }
+
+  private saveMessagesToCache(messages: DecryptedMessage[]) {
+    try {
+      const cacheKey = this.getCacheKey();
+      localStorage.setItem(cacheKey, JSON.stringify(messages));
+      
+      // Save last fetch timestamp
+      const lastFetchKey = this.getLastFetchKey();
+      localStorage.setItem(lastFetchKey, Date.now().toString());
+    } catch (error) {
+      console.error('Failed to save messages to cache:', error);
+    }
+  }
+
+  private getLastFetchTimestamp(): number {
+    try {
+      const lastFetchKey = this.getLastFetchKey();
+      const timestamp = localStorage.getItem(lastFetchKey);
+      return timestamp ? parseInt(timestamp, 10) : 0;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  private saveSentMessageLocally(recipientPubkey: string, subject: string, content: string, replyTo?: string) {
+    try {
+      const sentMessage: DecryptedMessage = {
+        id: Math.random().toString(36).substring(2) + Date.now().toString(36),
+        from: this.publicKey!,
+        to: recipientPubkey,
+        subject,
+        content,
+        timestamp: Date.now(),
+        read: true,
+        replyTo
+      };
+
+      // Add to current cache
+      const cachedMessages = this.loadMessagesFromCache();
+      cachedMessages.unshift(sentMessage);
+      this.saveMessagesToCache(cachedMessages);
+      
+      console.log('Saved sent message locally:', { id: sentMessage.id, to: recipientPubkey, subject });
+    } catch (error) {
+      console.error('Failed to save sent message locally:', error);
+    }
   }
 
   async getProfile(pubkey: string, forceRefresh = false): Promise<NostrProfile | null> {
@@ -351,6 +425,9 @@ export class NostrService {
       // Publish the wrapped event
       await this.pool.publish(RELAYS, wrappedEvent);
 
+      // Save sent message locally (NIP-17 doesn't allow retrieving sent messages)
+      this.saveSentMessageLocally(recipientPubkey, subject, content, replyTo);
+
       return true;
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -358,49 +435,99 @@ export class NostrService {
     }
   }
 
-  async getMessages(): Promise<DecryptedMessage[]> {
+  async getMessages(onProgress?: (current: number, total: number) => void, forceRefresh: boolean = false): Promise<DecryptedMessage[]> {
     if (!this.publicKey) {
       return [];
     }
 
-    const messages: DecryptedMessage[] = [];
+    // Verify extension is available if using extension mode
+    if (this.usingExtension && !window.nostr) {
+      console.error('Extension mode active but window.nostr not available');
+      return this.loadMessagesFromCache();
+    }
+
+    // Load from cache first
+    const cachedMessages = this.loadMessagesFromCache();
+    const lastFetch = this.getLastFetchTimestamp();
+    const now = Date.now();
+    
+    // If cache is fresh (less than 20 seconds old) and not forcing refresh, return cache immediately
+    if (!forceRefresh && cachedMessages.length > 0 && (now - lastFetch) < 20 * 1000) {
+      return cachedMessages;
+    }
+
+    // Otherwise, fetch only NEW messages since last fetch
+    const newMessages: DecryptedMessage[] = [];
 
     try {
-      // Fetch wrapped NIP-17 messages (kind 1059 gift wraps)
+      // Report that we're starting to fetch
+      if (onProgress) {
+        onProgress(0, 100); // Show initial progress
+      }
+      
+      // Determine fetch range
+      // IMPORTANT: NIP-17 gift wrap events (kind 1059) may have randomized timestamps
+      // for privacy, so we cannot rely on 'since' to catch new messages!
+      // We always fetch from far back and rely on deduplication by ID
+      const since = Math.floor(Date.now() / 1000) - (100 * 24 * 60 * 60);
+      
       const wrappedEvents = await this.pool.querySync(RELAYS, {
         kinds: [1059],
         '#p': [this.publicKey],
-        limit: 100
+        since,
+        limit: 1000
       });
 
-      for (const wrappedEvent of wrappedEvents) {
+      const total = wrappedEvents.length;
+      
+      // Report initial progress to show we're starting
+      if (onProgress && total > 0) {
+        onProgress(0, total);
+      }
+
+      for (let i = 0; i < wrappedEvents.length; i++) {
+        const wrappedEvent = wrappedEvents[i];
+        
+        // Report progress
+        if (onProgress) {
+          onProgress(i + 1, total);
+        }
+        
+        // Allow UI to update every 10 messages (important for nsec which is synchronous)
+        if (i % 10 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+        
         try {
           let rumor: any;
           
           if (this.usingExtension) {
-            if (!window.nostr) continue;
-            
-            // Manual unwrapping for extension
-            // First, decrypt the gift wrap to get the seal
-            let sealContent: string;
-            if (window.nostr.nip44?.decrypt) {
-              sealContent = await window.nostr.nip44.decrypt(wrappedEvent.pubkey, wrappedEvent.content);
-            } else {
-              console.warn('Extension does not support NIP-44 decryption required for NIP-17');
+            if (!window.nostr) {
+              console.warn('Using extension mode but window.nostr not available');
               continue;
             }
             
-            const seal = JSON.parse(sealContent);
-            
-            // Decrypt the seal to get the rumor
-            let rumorContent: string;
-            if (window.nostr.nip44?.decrypt) {
-              rumorContent = await window.nostr.nip44.decrypt(seal.pubkey, seal.content);
-            } else {
+            // Manual unwrapping for extension using NIP-44
+            try {
+              if (!window.nostr.nip44?.decrypt) {
+                continue;
+              }
+              
+              // Decrypt the gift wrap (kind 1059)
+              const sealJson = await window.nostr.nip44.decrypt(wrappedEvent.pubkey, wrappedEvent.content);
+              if (!sealJson) continue;
+              
+              const seal = JSON.parse(sealJson);
+              
+              // Decrypt the seal (kind 13) to get the rumor
+              const rumorJson = await window.nostr.nip44.decrypt(seal.pubkey, seal.content);
+              if (!rumorJson) continue;
+              
+              rumor = JSON.parse(rumorJson);
+            } catch (decryptError) {
+              // Expected - message not for us or decryption failed
               continue;
             }
-            
-            rumor = JSON.parse(rumorContent);
           } else if (this.secretKey) {
             rumor = nip17.unwrapEvent(wrappedEvent, this.secretKey);
           } else {
@@ -416,7 +543,7 @@ export class NostrService {
           const recipientTag = rumor.tags.find((t: string[]) => t[0] === 'p');
           const recipient = recipientTag ? recipientTag[1] : this.publicKey;
 
-          messages.push({
+          newMessages.push({
             id: rumor.id || wrappedEvent.id,
             from: rumor.pubkey,
             to: recipient,
@@ -428,15 +555,30 @@ export class NostrService {
             rawEvent: wrappedEvent
           });
         } catch (error) {
-          console.error('Failed to decrypt NIP-17 message:', error);
+          // Silent fail - this is expected when trying to decrypt messages not for us
         }
       }
 
+      // Merge new messages with existing cache (deduplicate by ID)
+      const mergedMessages = [...cachedMessages];
+      for (const newMsg of newMessages) {
+        if (!mergedMessages.some(m => m.id === newMsg.id)) {
+          mergedMessages.push(newMsg);
+        }
+      }
+      
       // Sort by timestamp (newest first)
-      return messages.sort((a, b) => b.timestamp - a.timestamp);
+      mergedMessages.sort((a, b) => b.timestamp - a.timestamp);
+      
+      // Save merged cache and update last fetch timestamp
+      this.saveMessagesToCache(mergedMessages);
+      localStorage.setItem(this.getLastFetchKey(), Date.now().toString());
+      
+      return mergedMessages;
     } catch (error) {
       console.error('Failed to fetch messages:', error);
-      return [];
+      // Always return cache on error
+      return cachedMessages;
     }
   }
 

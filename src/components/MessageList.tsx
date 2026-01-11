@@ -7,6 +7,7 @@ interface MessageListProps {
   messages: DecryptedMessage[];
   onMessageSelect: (message: DecryptedMessage) => void;
   selectedMessageId?: string;
+  showRecipient?: boolean;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({ 

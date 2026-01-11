@@ -122,7 +122,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
         >
           <Zap className="w-5 h-5" />
-          <span>{loading ? 'Connecting...' : 'Connect with Extension (Recommended)'}</span>
+          <span>{loading ? 'Connecting...' : 'Connect with Extension'}</span>
         </button>
 
         <p className="mt-6 text-xs text-gray-500 text-center">

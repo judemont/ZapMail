@@ -7,6 +7,7 @@ import { Compose } from './components/Compose';
 import { About } from './components/About';
 import { Donate } from './components/Donate';
 import { nostrService } from './nostrService';
+import { RefreshCw } from 'lucide-react';
 import type { Folder, DecryptedMessage } from './types';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
   const [messages, setMessages] = useState<DecryptedMessage[]>([]);
   const [selectedMessage, setSelectedMessage] = useState<DecryptedMessage | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState<{ current: number; total: number } | null>(null);
   const [replyToMessage, setReplyToMessage] = useState<DecryptedMessage | undefined>();
 
   // Check if already logged in on mount
@@ -24,15 +26,19 @@ function App() {
     }
   }, []);
 
-  const loadMessages = async () => {
+  const loadMessages = async (forceRefresh: boolean = false) => {
     setLoading(true);
+    setLoadingProgress(null);
     try {
-      const fetchedMessages = await nostrService.getMessages();
+      const fetchedMessages = await nostrService.getMessages((current, total) => {
+        setLoadingProgress({ current, total });
+      }, forceRefresh);
       setMessages(fetchedMessages);
     } catch (error) {
       console.error('Failed to load messages:', error);
     } finally {
       setLoading(false);
+      setLoadingProgress(null);
     }
   };
 
@@ -82,6 +88,15 @@ function App() {
   const inboxMessages = messages.filter(m => m.to === userPubkey);
   const sentMessages = messages.filter(m => m.from === userPubkey && m.to !== userPubkey);
 
+  console.log('Messages filtering:', {
+    total: messages.length,
+    userPubkey,
+    inbox: inboxMessages.length,
+    sent: sentMessages.length,
+    allFrom: messages.filter(m => m.from === userPubkey).length,
+    sampleMessages: messages.slice(0, 3).map(m => ({ from: m.from.substring(0,8), to: m.to.substring(0,8), subject: m.subject }))
+  });
+
   const currentMessages = currentFolder === 'inbox' ? inboxMessages : sentMessages;
 
   return (
@@ -113,20 +128,46 @@ function App() {
         ) : (
           <div className="flex-1 flex overflow-hidden">
             <div className="w-96 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
+              <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0 flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-gray-800 capitalize">
                   {currentFolder}
                 </h2>
+                <button
+                  onClick={() => loadMessages(true)}
+                  disabled={loading}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+                  title="Rechercher nouveaux messages"
+                >
+                  <RefreshCw className={`w-5 h-5 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
+                </button>
               </div>
               {loading ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-gray-400">Loading messages...</div>
+                <div className="flex-1 flex items-center justify-center p-6">
+                  <div className="text-center w-full max-w-md">
+                    <div className="text-gray-600 mb-4">
+                      {loadingProgress ? 'Décryptage des messages...' : 'Chargement des messages...'}
+                    </div>
+                    {loadingProgress && (
+                      <>
+                        <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                          <div 
+                            className="bg-purple-600 h-3 rounded-full transition-all duration-300"
+                            style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
+                          />
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {loadingProgress.current} / {loadingProgress.total} messages
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <MessageList
                   messages={currentMessages}
                   onMessageSelect={setSelectedMessage}
                   selectedMessageId={selectedMessage?.id}
+                  showRecipient={currentFolder === 'sent'}
                 />
               )}
             </div>
