@@ -103,7 +103,7 @@ export const MessageList: React.FC<MessageListProps> = ({
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-400">
+      <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500">
         <div className="text-center">
           <p className="text-lg">No messages</p>
           <p className="text-sm mt-2">Your messages will appear here</p>
@@ -115,7 +115,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   return (
     <div className="flex-1 overflow-y-auto">
       {threads.map((thread, threadIndex) => (
-        <div key={`thread-${threadIndex}`} className="border-b-2 border-gray-300">
+        <div key={`thread-${threadIndex}`} className="border-b-2 border-gray-300 dark:border-gray-600">
           {thread.map((message, msgIndex) => {
             const profile = profiles.get(message.from);
             const displayName = getDisplayName(message.from);
@@ -126,9 +126,9 @@ export const MessageList: React.FC<MessageListProps> = ({
               <div
                 key={message.id}
                 onClick={() => onMessageSelect(message)}
-                className={`border-b border-gray-200 px-3 lg:px-6 py-3 lg:py-4 cursor-pointer hover:bg-gray-50 transition ${
-                  selectedMessageId === message.id ? 'bg-blue-50' : ''
-                } ${isReply ? 'bg-gray-50 ml-4 lg:ml-8' : ''}`}
+                className={`border-b border-gray-200 dark:border-gray-700 px-3 lg:px-6 py-3 lg:py-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition ${
+                  selectedMessageId === message.id ? 'bg-blue-50 dark:bg-blue-900' : ''
+                } ${isReply ? 'bg-gray-50 dark:bg-gray-700 ml-4 lg:ml-8' : ''}`}
               >
                 <div className="flex items-start space-x-2 lg:space-x-3">
                   {profile?.picture ? (
@@ -138,8 +138,8 @@ export const MessageList: React.FC<MessageListProps> = ({
                       className="w-8 h-8 lg:w-10 lg:h-10 rounded-full object-cover flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <span className="text-purple-600 font-semibold text-sm lg:text-base">
+                    <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center flex-shrink-0">
+                      <span className="text-purple-600 dark:text-purple-300 font-semibold text-sm lg:text-base">
                         {displayName[0].toUpperCase()}
                       </span>
                     </div>
@@ -149,28 +149,28 @@ export const MessageList: React.FC<MessageListProps> = ({
                     <div className="flex justify-between items-start mb-1 gap-1 lg:gap-2">
                       <div className="flex flex-col min-w-0 flex-1">
                         <div className="flex items-center gap-1 lg:gap-2 min-w-0">
-                          <span className="font-semibold text-sm lg:text-base text-gray-900 truncate">
+                          <span className="font-semibold text-sm lg:text-base text-gray-900 dark:text-gray-100 truncate">
                             {displayName}
                           </span>
                           {profile?.nip05 && profile.nip05valid && (
-                            <span className="text-xs text-green-600 flex-shrink-0">✓</span>
+                            <span className="text-xs text-green-600 dark:text-green-400 flex-shrink-0">✓</span>
                           )}
                           {isReply && (
-                            <span className="text-xs text-purple-600 flex-shrink-0">↪ Reply</span>
+                            <span className="text-xs text-purple-600 dark:text-purple-400 flex-shrink-0">↪ Reply</span>
                           )}
                         </div>
                         {secondaryDisplay && (
-                          <div className="text-xs text-gray-600 truncate">{secondaryDisplay}</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 truncate">{secondaryDisplay}</div>
                         )}
                       </div>
-                      <div className="text-xs text-gray-500 flex-shrink-0 whitespace-nowrap">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 whitespace-nowrap">
                         {formatTime(message.timestamp)}
                       </div>
                     </div>
-                    <div className="font-medium text-sm lg:text-base text-gray-800 mb-1 break-all line-clamp-2">
+                    <div className="font-medium text-sm lg:text-base text-gray-800 dark:text-gray-200 mb-1 break-all line-clamp-2">
                       {message.subject}
                     </div>
-                    <div className="text-xs lg:text-sm text-gray-600 break-all line-clamp-2">
+                    <div className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 break-all line-clamp-2">
                       {message.content}
                     </div>
                   </div>

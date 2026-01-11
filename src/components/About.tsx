@@ -1,11 +1,12 @@
 import React from 'react';
-import { ArrowLeft, Mail } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 interface AboutProps {
   onBack: () => void;
+  isDarkMode: boolean;
 }
 
-export const About: React.FC<AboutProps> = ({ onBack }) => {
+export const About: React.FC<AboutProps> = ({ onBack, isDarkMode }) => {
   return (
     <div className="flex-1 flex flex-col bg-white overflow-hidden">
       <div className="border-b border-gray-200 px-3 lg:px-6 py-3 lg:py-4 flex items-center space-x-2 lg:space-x-4 flex-shrink-0">
@@ -21,9 +22,11 @@ export const About: React.FC<AboutProps> = ({ onBack }) => {
       <div className="flex-1 overflow-y-auto p-3 lg:p-6">
         <div className="max-w-4xl mx-auto prose prose-purple">
           <div className="flex items-center space-x-3 mb-4 lg:mb-6">
-            <div className="bg-purple-600 p-2 lg:p-3 rounded-lg">
-              <Mail className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
-            </div>
+            <img 
+              src={isDarkMode ? "/icon-dark.png" : "/icon-light.png"} 
+              alt="ZapMail Logo" 
+              className="w-12 h-12 lg:w-16 lg:h-16" 
+            />
             <div>
               <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 m-0">ZapMail</h1>
               <p className="text-sm lg:text-base text-gray-600 m-0">A Nostr-based Email Client</p>

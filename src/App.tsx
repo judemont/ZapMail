@@ -19,7 +19,36 @@ function App() {
   const [loadingProgress, setLoadingProgress] = useState<{ current: number; total: number } | null>(null);
   const [replyToMessage, setReplyToMessage] = useState<DecryptedMessage | undefined>();
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const backgroundRefreshingRef = useRef(false);
+
+  // Load theme preference on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('zapmail_theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const shouldBeDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+    
+    if (shouldBeDark) {
+      document.documentElement.classList.add('dark');
+      setIsDarkMode(true);
+    } else {
+      document.documentElement.classList.remove('dark');
+      setIsDarkMode(false);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newValue = !isDarkMode;
+    setIsDarkMode(newValue);
+    
+    if (newValue) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('zapmail_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('zapmail_theme', 'light');
+    }
+  };
 
   // Check if already logged in on mount
   useEffect(() => {
@@ -98,7 +127,7 @@ function App() {
   };
 
   if (!isLoggedIn) {
-    return <Login onLogin={handleLogin} />;
+    return <Login onLogin={handleLogin} isDarkMode={isDarkMode} onToggleTheme={toggleTheme} />;
   }
 
   const userPubkey = nostrService.getPublicKey();
@@ -108,7 +137,7 @@ function App() {
   const currentMessages = currentFolder === 'inbox' ? inboxMessages : sentMessages;
 
   return (
-    <div className="h-screen flex bg-gray-100">
+    <div className="h-screen flex bg-gray-100 dark:bg-gray-900">
       {/* Mobile Sidebar Overlay */}
       {showMobileSidebar && (
         <div 
@@ -132,6 +161,8 @@ function App() {
             inbox: inboxMessages.length,
             sent: sentMessages.length,
           }}
+          isDarkMode={isDarkMode}
+          onToggleTheme={toggleTheme}
         />
       </div>
 
@@ -144,53 +175,54 @@ function App() {
             }} 
             onSent={handleMessageSent}
             replyTo={replyToMessage}
+            isDarkMode={isDarkMode}
           />
         ) : currentFolder === 'about' ? (
-          <About onBack={() => setCurrentFolder('inbox')} />
+          <About onBack={() => setCurrentFolder('inbox')} isDarkMode={isDarkMode} />
         ) : currentFolder === 'donate' ? (
           <Donate onBack={() => setCurrentFolder('inbox')} />
         ) : (
           <div className="flex-1 flex overflow-hidden">
             {/* Message List - hide on mobile when message is selected */}
-            <div className={`w-full lg:w-96 bg-white border-r border-gray-200 flex flex-col overflow-hidden ${
+            <div className={`w-full lg:w-96 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden ${
               selectedMessage ? 'hidden lg:flex' : 'flex'
             }`}>
-              <div className="px-4 lg:px-6 py-4 border-b border-gray-200 flex-shrink-0 flex items-center justify-between">
+              <div className="px-4 lg:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 flex items-center justify-between">
                 <button
                   onClick={() => setShowMobileSidebar(true)}
-                  className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition mr-2"
+                  className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition mr-2"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-gray-800 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </button>
-                <h2 className="text-lg lg:text-xl font-semibold text-gray-800 capitalize">
+                <h2 className="text-lg lg:text-xl font-semibold text-gray-800 dark:text-gray-200 capitalize">
                   {currentFolder}
                 </h2>
                 <button
                   onClick={() => loadMessagesForeground(true)}
                   disabled={loading}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition disabled:opacity-50"
                   title="Refresh messages"
                 >
-                  <RefreshCw className={`w-5 h-5 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`w-5 h-5 text-gray-600 dark:text-gray-400 ${loading ? 'animate-spin' : ''}`} />
                 </button>
               </div>
               {loading ? (
                 <div className="flex-1 flex items-center justify-center p-6">
                   <div className="text-center w-full max-w-md">
-                    <div className="text-gray-600 mb-4">
+                    <div className="text-gray-600 dark:text-gray-400 mb-4">
                         {loadingProgress ? 'Decrypting messages...' : 'Loading messages...'}
                     </div>
                     {loadingProgress && (
                       <>
-                        <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
                           <div 
-                            className="bg-purple-600 h-3 rounded-full transition-all duration-300"
+                            className="bg-purple-600 dark:bg-purple-500 h-3 rounded-full transition-all duration-300"
                             style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
                           />
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
                           {loadingProgress.current} / {loadingProgress.total} messages
                         </div>
                       </>
@@ -219,7 +251,7 @@ function App() {
                   onReply={handleReply}
                 />
               ) : (
-                <div className="h-full flex items-center justify-center text-gray-400 p-4">
+                <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-500 p-4 bg-white dark:bg-gray-800">
                   <div className="text-center">
                     <p className="text-base lg:text-lg">No message selected</p>
                     <p className="text-sm mt-2">Select a message to read</p>

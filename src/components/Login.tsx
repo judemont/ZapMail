@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Zap } from 'lucide-react';
+import { Zap, Sun, Moon } from 'lucide-react';
 import { nostrService } from '../nostrService';
 
 interface LoginProps {
   onLogin: () => void;
+  isDarkMode: boolean;
+  onToggleTheme: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin, isDarkMode, onToggleTheme }) => {
   const [nsec, setNsec] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -61,24 +63,38 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-3 lg:p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-6 lg:p-8 w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-3 lg:p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 lg:p-8 w-full max-w-md relative">
+        <button
+          onClick={onToggleTheme}
+          className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+          title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {isDarkMode ? (
+            <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          ) : (
+            <Moon className="w-5 h-5 text-gray-600" />
+          )}
+        </button>
+
         <div className="flex justify-center mb-4 lg:mb-6">
-          <div className="bg-purple-600 p-3 lg:p-4 rounded-full">
-            <Mail className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
-          </div>
+          <img 
+            src={isDarkMode ? "/icon-dark.png" : "/icon-light.png"} 
+            alt="ZapMail Logo" 
+            className="w-16 h-16 lg:w-20 lg:h-20" 
+          />
         </div>
         
-        <h1 className="text-2xl lg:text-3xl font-bold text-center text-gray-800 mb-2">
+        <h1 className="text-2xl lg:text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-2">
           ZapMail
         </h1>
-        <p className="text-sm lg:text-base text-center text-gray-600 mb-6 lg:mb-8">
+        <p className="text-sm lg:text-base text-center text-gray-600 dark:text-gray-400 mb-6 lg:mb-8">
           Secure email-like messaging on Nostr
         </p>
 
         <form onSubmit={handleLogin} className="space-y-3 lg:space-y-4">
           <div>
-            <label htmlFor="nsec" className="block text-xs lg:text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="nsec" className="block text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Enter your NSEC private key
             </label>
             <input
@@ -87,13 +103,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               value={nsec}
               onChange={(e) => setNsec(e.target.value)}
               placeholder="nsec1..."
-              className="w-full px-3 lg:px-4 py-2 lg:py-3 text-sm lg:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+              className="w-full px-3 lg:px-4 py-2 lg:py-3 text-sm lg:text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
               required
             />
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-xs lg:text-sm">
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-xs lg:text-sm">
               {error}
             </div>
           )}
@@ -101,7 +117,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-purple-600 text-white py-2 lg:py-3 rounded-lg text-sm lg:text-base font-semibold hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-purple-600 dark:bg-purple-500 text-white py-2 lg:py-3 rounded-lg text-sm lg:text-base font-semibold hover:bg-purple-700 dark:hover:bg-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Logging in...' : 'Login'}
           </button>
@@ -109,23 +125,23 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         <div className="relative my-4 lg:my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
+            <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
           </div>
           <div className="relative flex justify-center text-xs lg:text-sm">
-            <span className="px-2 bg-white text-gray-500">Or</span>
+            <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">Or</span>
           </div>
         </div>
 
         <button
           onClick={handleExtensionLogin}
           disabled={loading}
-          className="w-full bg-purple-600 text-white py-2 lg:py-3 rounded-lg text-sm lg:text-base font-semibold hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+          className="w-full bg-purple-600 dark:bg-purple-500 text-white py-2 lg:py-3 rounded-lg text-sm lg:text-base font-semibold hover:bg-purple-700 dark:hover:bg-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
         >
           <Zap className="w-4 h-4 lg:w-5 lg:h-5" />
           <span>{loading ? 'Connecting...' : 'Connect with Extension'}</span>
         </button>
 
-        <p className="mt-4 lg:mt-6 text-xs text-gray-500 text-center">
+        <p className="mt-4 lg:mt-6 text-xs text-gray-500 dark:text-gray-400 text-center">
           Your private key is stored locally and never sent to any server.
         </p>
       </div>

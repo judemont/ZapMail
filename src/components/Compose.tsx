@@ -7,6 +7,7 @@ interface ComposeProps {
   onBack: () => void;
   onSent: () => void;
   replyTo?: DecryptedMessage;
+  isDarkMode: boolean;
 }
 
 interface SelectedRecipient {
@@ -15,7 +16,7 @@ interface SelectedRecipient {
   profile?: any;
 }
 
-export const Compose: React.FC<ComposeProps> = ({ onBack, onSent, replyTo }) => {
+export const Compose: React.FC<ComposeProps> = ({ onBack, onSent, replyTo, isDarkMode: _isDarkMode }) => {
   const [toRecipients, setToRecipients] = useState<SelectedRecipient[]>([]);
   const [toInput, setToInput] = useState('');
   const [subject, setSubject] = useState('');
@@ -236,7 +237,7 @@ export const Compose: React.FC<ComposeProps> = ({ onBack, onSent, replyTo }) => 
   };
 
   const RecipientTag: React.FC<{ recipient: SelectedRecipient; onRemove: () => void; disabled?: boolean }> = ({ recipient, onRemove, disabled }) => (
-    <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-800 px-2 py-1 rounded-md text-sm">
+    <span className="inline-flex items-center gap-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded-md text-sm">
       <span className="truncate max-w-[150px]">{recipient.displayName}</span>
       {!disabled && (
         <button type="button" onClick={onRemove} className="hover:text-purple-600">
@@ -247,7 +248,7 @@ export const Compose: React.FC<ComposeProps> = ({ onBack, onSent, replyTo }) => 
   );
 
   const SuggestionList: React.FC<{ suggestions: Contact[]; onSelect: (contact: Contact) => void }> = ({ suggestions, onSelect }) => (
-    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
       {suggestions.map((contact) => {
         const displayName = nostrService.getDisplayName(contact.profile, contact.pubkey);
         const secondaryDisplay = nostrService.getSecondaryDisplay(contact.profile);
@@ -265,21 +266,21 @@ export const Compose: React.FC<ComposeProps> = ({ onBack, onSent, replyTo }) => 
                 className="w-8 h-8 rounded-full object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                <span className="text-purple-600 font-semibold text-sm">
+              <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center flex-shrink-0">
+                <span className="text-purple-600 dark:text-purple-300 font-semibold text-sm">
                   {displayName[0].toUpperCase()}
                 </span>
               </div>
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-medium text-gray-900 truncate">{displayName}</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100 truncate">{displayName}</span>
                 {contact.profile?.nip05 && contact.profile.nip05valid && (
-                  <span className="text-xs text-green-600">✓</span>
+                  <span className="text-xs text-green-600 dark:text-green-400">✓</span>
                 )}
               </div>
               {secondaryDisplay && (
-                <div className="text-xs text-gray-500 truncate">{secondaryDisplay}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{secondaryDisplay}</div>
               )}
             </div>
           </div>
@@ -289,15 +290,15 @@ export const Compose: React.FC<ComposeProps> = ({ onBack, onSent, replyTo }) => 
   );
 
   return (
-    <div className="flex-1 flex flex-col bg-white">
-      <div className="border-b border-gray-200 px-3 lg:px-6 py-3 lg:py-4 flex items-center space-x-2 lg:space-x-4">
+    <div className="flex-1 flex flex-col bg-white dark:bg-gray-900">
+      <div className="border-b border-gray-200 dark:border-gray-700 px-3 lg:px-6 py-3 lg:py-4 flex items-center space-x-2 lg:space-x-4">
         <button
           onClick={onBack}
-          className="p-2 hover:bg-gray-100 rounded-lg transition"
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-5 h-5 text-gray-800 dark:text-gray-200" />
         </button>
-        <h2 className="text-lg lg:text-xl font-semibold text-gray-800">
+        <h2 className="text-lg lg:text-xl font-semibold text-gray-800 dark:text-gray-100">
           {replyTo ? 'Reply to Message' : 'New Message'}
         </h2>
       </div>
@@ -307,10 +308,10 @@ export const Compose: React.FC<ComposeProps> = ({ onBack, onSent, replyTo }) => 
           <div className="p-3 lg:p-6 space-y-3 lg:space-y-4">
             {/* To Field */}
             <div className="relative">
-              <label className="block text-xs lg:text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 To
               </label>
-              <div className="flex flex-wrap gap-2 p-2 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-transparent min-h-[42px]">
+              <div className="flex flex-wrap gap-2 p-2 border border-gray-300 dark:border-gray-700 rounded-lg focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-transparent min-h-[42px] bg-white dark:bg-gray-800">
                 {toRecipients.map(recipient => (
                   <RecipientTag
                     key={recipient.pubkey}
@@ -339,7 +340,7 @@ export const Compose: React.FC<ComposeProps> = ({ onBack, onSent, replyTo }) => 
                     }
                   }}
                   placeholder={toRecipients.length === 0 ? "Enter name, npub, or NIP-05..." : ""}
-                  className="flex-1 min-w-[200px] outline-none text-sm"
+                  className="flex-1 min-w-[200px] outline-none text-sm bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   disabled={!!replyTo}
                 />
               </div>
@@ -350,7 +351,7 @@ export const Compose: React.FC<ComposeProps> = ({ onBack, onSent, replyTo }) => 
 
             {/* Subject Field */}
             <div>
-              <label htmlFor="subject" className="block text-xs lg:text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="subject" className="block text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Subject
               </label>
               <input
@@ -359,14 +360,14 @@ export const Compose: React.FC<ComposeProps> = ({ onBack, onSent, replyTo }) => 
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="Message subject"
-                className="w-full px-3 lg:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm lg:text-base"
+                className="w-full px-3 lg:px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm lg:text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 required
               />
             </div>
 
             {/* Message Field */}
             <div className="flex-1">
-              <label htmlFor="content" className="block text-xs lg:text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="content" className="block text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Message
               </label>
               <textarea
@@ -375,31 +376,31 @@ export const Compose: React.FC<ComposeProps> = ({ onBack, onSent, replyTo }) => 
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Write your message..."
                 rows={12}
-                className="w-full px-3 lg:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none text-sm lg:text-base"
+                className="w-full px-3 lg:px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none text-sm lg:text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 required
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-xs lg:text-sm">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-xs lg:text-sm">
                 {error}
               </div>
             )}
           </div>
         </div>
 
-        <div className="border-t border-gray-200 px-3 lg:px-6 py-3 lg:py-4 flex justify-end space-x-2 lg:space-x-3 flex-shrink-0">
+        <div className="border-t border-gray-200 dark:border-gray-700 px-3 lg:px-6 py-3 lg:py-4 flex justify-end space-x-2 lg:space-x-3 flex-shrink-0 bg-white dark:bg-gray-900">
           <button
             type="button"
             onClick={onBack}
-            className="px-4 lg:px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm lg:text-base"
+            className="px-4 lg:px-6 py-2 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition text-sm lg:text-base text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={sending}
-            className="px-4 lg:px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 text-sm lg:text-base"
+            className="px-4 lg:px-6 py-2 bg-purple-600 dark:bg-purple-500 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 text-sm lg:text-base"
           >
             <Send className="w-4 h-4" />
             <span>{sending ? 'Sending...' : 'Send'}</span>

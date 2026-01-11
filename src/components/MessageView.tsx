@@ -121,8 +121,8 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
     }
 
     return (
-      <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-        <span className="text-purple-600 font-semibold text-sm lg:text-base">{name[0]?.toUpperCase() ?? '?'}</span>
+      <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center flex-shrink-0">
+        <span className="text-purple-600 dark:text-purple-300 font-semibold text-sm lg:text-base">{name[0]?.toUpperCase() ?? '?'}</span>
       </div>
     );
   };
@@ -154,20 +154,20 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-white overflow-hidden">
-      <div className="border-b border-gray-200 px-3 lg:px-6 py-3 lg:py-4 flex items-center justify-between flex-shrink-0">
+    <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 overflow-hidden">
+      <div className="border-b border-gray-200 dark:border-gray-700 px-3 lg:px-6 py-3 lg:py-4 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center space-x-2 lg:space-x-4 min-w-0 flex-1">
           <button
             onClick={onBack}
-            className="p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0 lg:hidden"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition flex-shrink-0 lg:hidden"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 text-gray-800 dark:text-gray-200" />
           </button>
         </div>
         <div className="flex items-center space-x-1 lg:space-x-2 flex-shrink-0">
           <button
             onClick={() => onReply(message)}
-            className="flex items-center space-x-1 lg:space-x-2 px-3 lg:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm lg:text-base"
+            className="flex items-center space-x-1 lg:space-x-2 px-3 lg:px-4 py-2 bg-purple-600 dark:bg-purple-500 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition text-sm lg:text-base"
           >
             <Reply className="w-4 h-4" />
             <span className="hidden sm:inline">Reply</span>
@@ -175,62 +175,62 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
             >
-              <MoreVertical className="w-5 h-5" />
+              <MoreVertical className="w-5 h-5 text-gray-800 dark:text-gray-200" />
             </button>
             {showMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10">
                 <button
                   onClick={() => {
                     copyToClipboard(message.id, 'id');
                     setShowMenu(false);
                   }}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
+                  className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-between"
                 >
-                  <span className="text-sm text-gray-700">Copy Message ID</span>
-                  {copiedItem === 'id' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-gray-400" />}
+                  <span className="text-sm text-gray-700 dark:text-gray-200">Copy Message ID</span>
+                  {copiedItem === 'id' ? <Check className="w-4 h-4 text-green-600 dark:text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
                 </button>
                 <button
                   onClick={() => {
                     copyToClipboard(message.content, 'content');
                     setShowMenu(false);
                   }}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
+                  className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-between"
                 >
-                  <span className="text-sm text-gray-700">Copy Content</span>
-                  {copiedItem === 'content' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-gray-400" />}
+                  <span className="text-sm text-gray-700 dark:text-gray-200">Copy Content</span>
+                  {copiedItem === 'content' ? <Check className="w-4 h-4 text-green-600 dark:text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
                 </button>
                 <button
                   onClick={() => {
                     copyMessageData();
                     setShowMenu(false);
                   }}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
+                  className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-between"
                 >
-                  <span className="text-sm text-gray-700">Copy Message Data</span>
-                  {copiedItem === 'json' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-gray-400" />}
+                  <span className="text-sm text-gray-700 dark:text-gray-200">Copy Message Data</span>
+                  {copiedItem === 'json' ? <Check className="w-4 h-4 text-green-600 dark:text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
                 </button>
-                <div className="border-t border-gray-200"></div>
+                <div className="border-t border-gray-200 dark:border-gray-600"></div>
                 <button
                   onClick={() => {
                     copyToClipboard(message.from, 'sender');
                     setShowMenu(false);
                   }}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
+                  className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-between"
                 >
-                  <span className="text-sm text-gray-700">Copy Sender Pubkey</span>
-                  {copiedItem === 'sender' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-gray-400" />}
+                  <span className="text-sm text-gray-700 dark:text-gray-200">Copy Sender Pubkey</span>
+                  {copiedItem === 'sender' ? <Check className="w-4 h-4 text-green-600 dark:text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
                 </button>
                 <button
                   onClick={() => {
                     copyToClipboard(message.to, 'recipient');
                     setShowMenu(false);
                   }}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between rounded-b-lg"
+                  className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-between rounded-b-lg"
                 >
-                  <span className="text-sm text-gray-700">Copy Recipient Pubkey</span>
-                  {copiedItem === 'recipient' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-gray-400" />}
+                  <span className="text-sm text-gray-700 dark:text-gray-200">Copy Recipient Pubkey</span>
+                  {copiedItem === 'recipient' ? <Check className="w-4 h-4 text-green-600 dark:text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
                 </button>
               </div>
             )}
@@ -242,9 +242,9 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
         {thread.length > 1 ? (
           <>
             {/* Subject Header */}
-            <div className="bg-purple-50 border-b border-purple-100 px-3 lg:px-6 py-3 lg:py-4">
-              <h1 className="text-lg lg:text-2xl font-bold text-gray-900 break-words">{message.subject}</h1>
-              <div className="mt-2 text-xs lg:text-sm text-purple-700 flex items-center">
+            <div className="bg-purple-50 dark:bg-purple-900/30 border-b border-purple-100 dark:border-purple-800 px-3 lg:px-6 py-3 lg:py-4">
+              <h1 className="text-lg lg:text-2xl font-bold text-gray-900 dark:text-gray-100 break-words">{message.subject}</h1>
+              <div className="mt-2 text-xs lg:text-sm text-purple-700 dark:text-purple-300 flex items-center">
                 <Reply className="w-3 h-3 lg:w-4 lg:h-4 mr-1" />
                 Thread ({thread.length} messages)
               </div>
@@ -267,7 +267,7 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
                   <div
                     key={m.id}
                     className={`rounded-lg border p-3 lg:p-4 ${
-                      isFocus ? 'border-purple-300 bg-purple-50' : 'border-gray-200 bg-white'
+                      isFocus ? 'border-purple-300 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/30' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700'
                     }`}
                     style={{ marginLeft: `${Math.min(depth * 12, 48)}px` }}
                   >
@@ -277,28 +277,28 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
                           {getAvatar(m.from)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-xs lg:text-sm font-semibold text-gray-900 break-words">
+                          <div className="text-xs lg:text-sm font-semibold text-gray-900 dark:text-gray-100 break-words">
                             {m.subject}
-                            {depth > 0 && <span className="ml-1 lg:ml-2 text-xs text-purple-700">↪ Reply</span>}
-                            {isFocus && <span className="ml-1 lg:ml-2 text-xs text-purple-700">(selected)</span>}
+                            {depth > 0 && <span className="ml-1 lg:ml-2 text-xs text-purple-700 dark:text-purple-300">↪ Reply</span>}
+                            {isFocus && <span className="ml-1 lg:ml-2 text-xs text-purple-700 dark:text-purple-300">(selected)</span>}
                           </div>
-                          <div className="mt-1 text-xs lg:text-sm text-gray-700 truncate">
+                          <div className="mt-1 text-xs lg:text-sm text-gray-700 dark:text-gray-300 truncate">
                             <span className="font-medium">From:</span> {fromName}
                           </div>
-                          <div className="text-xs lg:text-sm text-gray-700 truncate">
+                          <div className="text-xs lg:text-sm text-gray-700 dark:text-gray-300 truncate">
                             <span className="font-medium">To:</span> {toName}
                           </div>
-                          <div className="mt-1 text-xs text-gray-500 font-mono truncate hidden lg:block">
+                          <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono truncate hidden lg:block">
                             {truncatePubkey(m.from)} → {truncatePubkey(m.to)}
                           </div>
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500 flex-shrink-0 whitespace-nowrap self-start">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 whitespace-nowrap self-start">
                         {new Date(m.timestamp).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
                       </div>
                     </div>
 
-                    <div className="mt-2 lg:mt-3 text-xs lg:text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed">
+                    <div className="mt-2 lg:mt-3 text-xs lg:text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words leading-relaxed">
                       {m.content}
                     </div>
                   </div>
@@ -309,32 +309,32 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
         ) : (
           <>
             {/* Single message view */}
-            <div className="bg-purple-50 border-b border-purple-100 px-3 lg:px-6 py-3 lg:py-4">
-              <h1 className="text-lg lg:text-2xl font-bold text-gray-900 break-words">{message.subject}</h1>
+            <div className="bg-purple-50 dark:bg-purple-900/30 border-b border-purple-100 dark:border-purple-800 px-3 lg:px-6 py-3 lg:py-4">
+              <h1 className="text-lg lg:text-2xl font-bold text-gray-900 dark:text-gray-100 break-words">{message.subject}</h1>
             </div>
 
-            <div className="px-3 lg:px-6 py-3 lg:py-4 border-b border-gray-200">
+            <div className="px-3 lg:px-6 py-3 lg:py-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-start justify-between gap-2 lg:gap-4">
                 <div className="flex items-start gap-2 lg:gap-3 min-w-0 flex-1">
                   <div className="flex-shrink-0">
                     {getAvatar(message.from)}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm lg:text-base font-semibold text-gray-900 truncate">
+                    <div className="text-sm lg:text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
                       {nostrService.getDisplayName(threadProfiles.get(message.from), message.from)}
                     </div>
-                    <div className="text-xs lg:text-sm text-gray-600 truncate">
+                    <div className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 truncate">
                       <span className="font-medium">To:</span>{' '}
                       {message.toRecipients && message.toRecipients.length > 1
                         ? formatRecipients(message.toRecipients, threadProfiles)
                         : nostrService.getDisplayName(threadProfiles.get(message.to), message.to)}
                     </div>
-                    <div className="text-xs text-gray-500 font-mono truncate hidden lg:block">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate hidden lg:block">
                       {truncatePubkey(message.from)} → {truncatePubkey(message.to)}
                     </div>
                   </div>
                 </div>
-                <div className="text-xs lg:text-sm text-gray-500 flex-shrink-0 whitespace-nowrap self-start">
+                <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400 flex-shrink-0 whitespace-nowrap self-start">
                   {new Date(message.timestamp).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
                 </div>
               </div>
@@ -342,7 +342,7 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, 
 
             <div className="px-3 lg:px-6 py-4 lg:py-6">
               <div className="prose max-w-none">
-                <div className="text-sm lg:text-base text-gray-800 whitespace-pre-wrap break-all leading-relaxed">
+                <div className="text-sm lg:text-base text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-all leading-relaxed">
                   {message.content}
                 </div>
               </div>
