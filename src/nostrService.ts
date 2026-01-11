@@ -17,6 +17,10 @@ export class NostrService {
   private profileCache: Map<string, NostrProfile> = new Map();
   private nip05Cache: Map<string, string> = new Map(); // nip05 -> pubkey
 
+  // Performance: keep a rolling cache of gift wrap event ids we already attempted to decrypt.
+  // This avoids re-trying to decrypt the same unrelated events on every refresh.
+  private static readonly SEEN_GIFTWRAP_IDS_LIMIT = 5000;
+
   constructor() {
     this.pool = new SimplePool();
     this.loadSession();
@@ -201,6 +205,60 @@ export class NostrService {
     return `zapmail_last_fetch_${this.publicKey}`;
   }
 
+  private getSeenGiftWrapKey(): string {
+    return `zapmail_seen_giftwrap_${this.publicKey}`;
+  }
+
+  private loadSeenGiftWrapIds(): string[] {
+    try {
+      const key = this.getSeenGiftWrapKey();
+      const raw = localStorage.getItem(key);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr.filter((v) => typeof v === 'string') : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveSeenGiftWrapIds(ids: string[]) {
+    try {
+      const key = this.getSeenGiftWrapKey();
+      localStorage.setItem(key, JSON.stringify(ids.slice(-NostrService.SEEN_GIFTWRAP_IDS_LIMIT)));
+    } catch {
+      // ignore
+    }
+  }
+
+  private mergeSeenGiftWrapIds(existing: string[], newlySeen: string[]): string[] {
+    if (newlySeen.length === 0) return existing;
+    const set = new Set(existing);
+    const merged = [...existing];
+    for (const id of newlySeen) {
+      if (typeof id !== 'string' || id.length === 0) continue;
+      if (set.has(id)) continue;
+      set.add(id);
+      merged.push(id);
+    }
+    return merged.slice(-NostrService.SEEN_GIFTWRAP_IDS_LIMIT);
+  }
+
+  private async mapWithConcurrency<T, R>(items: T[], concurrency: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+    const results: R[] = new Array(items.length);
+    let nextIndex = 0;
+
+    const workers = new Array(Math.min(concurrency, items.length)).fill(0).map(async () => {
+      while (true) {
+        const current = nextIndex++;
+        if (current >= items.length) break;
+        results[current] = await fn(items[current]);
+      }
+    });
+
+    await Promise.all(workers);
+    return results;
+  }
+
   private loadMessagesFromCache(): DecryptedMessage[] {
     try {
       const cacheKey = this.getCacheKey();
@@ -254,8 +312,6 @@ export class NostrService {
       const cachedMessages = this.loadMessagesFromCache();
       cachedMessages.unshift(sentMessage);
       this.saveMessagesToCache(cachedMessages);
-      
-      console.log('Saved sent message locally:', { id: sentMessage.id, to: recipientPubkey, subject });
     } catch (error) {
       console.error('Failed to save sent message locally:', error);
     }
@@ -474,13 +530,14 @@ export class NostrService {
     const cachedMessages = this.loadMessagesFromCache();
     const lastFetch = this.getLastFetchTimestamp();
     const now = Date.now();
-    
-    // If cache is fresh (less than 20 seconds old) and not forcing refresh, return cache immediately
-    if (!forceRefresh && cachedMessages.length > 0 && (now - lastFetch) < 20 * 1000) {
-      return cachedMessages;
+
+    // Use a map for O(1) dedup and updates.
+    const messageById = new Map<string, DecryptedMessage>();
+    for (const msg of cachedMessages) {
+      messageById.set(msg.id, msg);
     }
 
-    // Otherwise, fetch only NEW messages since last fetch
+    // Accumulate newly decrypted messages (kept separate to preserve cached read state).
     const newMessages: DecryptedMessage[] = [];
 
     try {
@@ -493,13 +550,25 @@ export class NostrService {
       // IMPORTANT: NIP-17 gift wrap events (kind 1059) may have randomized timestamps
       // for privacy, so we cannot rely on 'since' to catch new messages!
       // Delivery is done by attempting local decryption; do NOT filter by recipient tags.
-      // We fetch from far back and rely on deduplication by ID.
-      const since = Math.floor(Date.now() / 1000) - (100 * 24 * 60 * 60);
+      // Strategy:
+      // - First sync (no local cache): do a wider backfill window.
+      // - Subsequent refreshes: use a smaller window + persistent seen-id cache.
+      const isFirstSync = cachedMessages.length === 0;
+      const backfillDays = 100;
+      const refreshDays = 14;
+      const since = Math.floor(Date.now() / 1000) - ((isFirstSync ? backfillDays : refreshDays) * 24 * 60 * 60);
+      const limit = isFirstSync ? 1500 : 500;
+
+      // Persistent cache of gift wrap ids we've already attempted to decrypt.
+      // If the message cache is empty, we intentionally ignore this so we can rebuild from relays.
+      const seenGiftWrapIds = isFirstSync ? [] : this.loadSeenGiftWrapIds();
+      const seenGiftWrapSet = new Set(seenGiftWrapIds);
+      const newlySeenGiftWrapIds: string[] = [];
       
       const wrappedEvents = await this.pool.querySync(RELAYS, {
         kinds: [1059],
         since,
-        limit: 1000
+        limit
       });
 
       const total = wrappedEvents.length;
@@ -511,6 +580,18 @@ export class NostrService {
 
       for (let i = 0; i < wrappedEvents.length; i++) {
         const wrappedEvent = wrappedEvents[i];
+
+        // Skip work for gift wraps we've already tried to decrypt.
+        // (This is the big win when we are subscribed to a high-volume relay set.)
+        if (!isFirstSync && seenGiftWrapSet.has(wrappedEvent.id) && !forceRefresh) {
+          continue;
+        }
+
+        // Mark as seen even if decrypt fails (not-for-us is the common case).
+        if (!seenGiftWrapSet.has(wrappedEvent.id)) {
+          seenGiftWrapSet.add(wrappedEvent.id);
+          newlySeenGiftWrapIds.push(wrappedEvent.id);
+        }
         
         // Report progress
         if (onProgress) {
@@ -592,20 +673,25 @@ export class NostrService {
         }
       }
 
-      // Merge new messages with existing cache (deduplicate by ID)
-      const mergedMessages = [...cachedMessages];
+      // Add newly decrypted messages to the map (keep cached versions to preserve read state).
       for (const newMsg of newMessages) {
-        if (!mergedMessages.some(m => m.id === newMsg.id)) {
-          mergedMessages.push(newMsg);
+        if (!messageById.has(newMsg.id)) {
+          messageById.set(newMsg.id, newMsg);
         }
       }
+
+      const mergedMessages = Array.from(messageById.values());
       
       // Sort by timestamp (newest first)
       mergedMessages.sort((a, b) => b.timestamp - a.timestamp);
       
       // Save merged cache and update last fetch timestamp
       this.saveMessagesToCache(mergedMessages);
-      localStorage.setItem(this.getLastFetchKey(), Date.now().toString());
+
+      // Persist seen gift wrap ids (rolling window)
+      if (!isFirstSync && newlySeenGiftWrapIds.length > 0) {
+        this.saveSeenGiftWrapIds(this.mergeSeenGiftWrapIds(seenGiftWrapIds, newlySeenGiftWrapIds));
+      }
       
       return mergedMessages;
     } catch (error) {
@@ -621,16 +707,37 @@ export class NostrService {
     const messages = await this.getMessages();
     const contactMap = new Map<string, Contact>();
 
+    const uniquePubkeys: string[] = [];
     for (const msg of messages) {
       const contactPubkey = msg.from === this.publicKey ? msg.to : msg.from;
-      
       if (!contactMap.has(contactPubkey)) {
-        const profile = await this.getProfile(contactPubkey);
         contactMap.set(contactPubkey, {
           pubkey: contactPubkey,
-          profile: profile || undefined,
+          profile: undefined,
           lastMessage: msg.timestamp
         });
+        uniquePubkeys.push(contactPubkey);
+      } else {
+        const existing = contactMap.get(contactPubkey)!;
+        existing.lastMessage = Math.max(existing.lastMessage || 0, msg.timestamp);
+      }
+    }
+
+    // Fetch profiles with bounded concurrency to keep the UI responsive and avoid hammering relays.
+    const profiles = await this.mapWithConcurrency(uniquePubkeys, 5, async (pk) => {
+      try {
+        return await this.getProfile(pk);
+      } catch {
+        return null;
+      }
+    });
+
+    for (let i = 0; i < uniquePubkeys.length; i++) {
+      const pk = uniquePubkeys[i];
+      const profile = profiles[i];
+      const entry = contactMap.get(pk);
+      if (entry) {
+        entry.profile = profile || undefined;
       }
     }
 

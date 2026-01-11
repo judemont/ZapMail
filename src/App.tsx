@@ -88,15 +88,6 @@ function App() {
   const inboxMessages = messages.filter(m => m.to === userPubkey);
   const sentMessages = messages.filter(m => m.from === userPubkey && m.to !== userPubkey);
 
-  console.log('Messages filtering:', {
-    total: messages.length,
-    userPubkey,
-    inbox: inboxMessages.length,
-    sent: sentMessages.length,
-    allFrom: messages.filter(m => m.from === userPubkey).length,
-    sampleMessages: messages.slice(0, 3).map(m => ({ from: m.from.substring(0,8), to: m.to.substring(0,8), subject: m.subject }))
-  });
-
   const currentMessages = currentFolder === 'inbox' ? inboxMessages : sentMessages;
 
   return (
@@ -133,7 +124,7 @@ function App() {
                   {currentFolder}
                 </h2>
                 <button
-                  onClick={() => loadMessages(true)}
+                  onClick={() => loadMessages()}
                   disabled={loading}
                   className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
                   title="Rechercher nouveaux messages"
