@@ -1,56 +1,116 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Reply, MoreVertical, Copy, Check } from 'lucide-react';
 import type { DecryptedMessage, NostrProfile } from '../types';
 import { nostrService } from '../nostrService';
 
 interface MessageViewProps {
   message: DecryptedMessage;
+  allMessages: DecryptedMessage[];
   onBack: () => void;
   onReply: (message: DecryptedMessage) => void;
 }
 
-export const MessageView: React.FC<MessageViewProps> = ({ message, onBack, onReply }) => {
-  const [senderProfile, setSenderProfile] = useState<NostrProfile | undefined>();
+export const MessageView: React.FC<MessageViewProps> = ({ message, allMessages, onBack, onReply }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
-  const [originalMessage, setOriginalMessage] = useState<DecryptedMessage | null>(null);
-  const [loadingOriginal, setLoadingOriginal] = useState(false);
+  const [threadProfiles, setThreadProfiles] = useState<Map<string, NostrProfile>>(new Map());
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      const profile = await nostrService.getProfile(message.from);
-      setSenderProfile(profile || undefined);
+  const thread = useMemo(() => {
+    const byId = new Map<string, DecryptedMessage>();
+    for (const m of allMessages) byId.set(m.id, m);
+    // Ensure the selected message is present (it should be, but be defensive).
+    byId.set(message.id, message);
+
+    const focus = byId.get(message.id);
+    if (!focus) return [{ msg: message, depth: 0 }];
+
+    // Find the root by walking replyTo links.
+    let root = focus;
+    const visited = new Set<string>([root.id]);
+    while (root.replyTo && byId.has(root.replyTo) && !visited.has(root.replyTo)) {
+      visited.add(root.replyTo);
+      root = byId.get(root.replyTo)!;
+    }
+
+    // Build children lookup.
+    const childrenByParent = new Map<string, DecryptedMessage[]>();
+    for (const m of byId.values()) {
+      if (!m.replyTo) continue;
+      const arr = childrenByParent.get(m.replyTo) ?? [];
+      arr.push(m);
+      childrenByParent.set(m.replyTo, arr);
+    }
+    for (const arr of childrenByParent.values()) {
+      arr.sort((a, b) => a.timestamp - b.timestamp);
+    }
+
+    // DFS to linearize the thread.
+    const out: Array<{ msg: DecryptedMessage; depth: number }> = [];
+    const pushed = new Set<string>();
+    const walk = (node: DecryptedMessage, depth: number) => {
+      if (pushed.has(node.id)) return;
+      pushed.add(node.id);
+      out.push({ msg: node, depth });
+      const kids = childrenByParent.get(node.id) ?? [];
+      for (const child of kids) walk(child, depth + 1);
     };
-    loadProfile();
-  }, [message.from]);
+    walk(root, 0);
+
+    // Ensure focus is visible even if it was disconnected.
+    if (!out.some((x) => x.msg.id === focus.id)) {
+      out.unshift({ msg: focus, depth: 0 });
+    }
+
+    return out;
+  }, [allMessages, message]);
 
   useEffect(() => {
-    const loadOriginalMessage = async () => {
-      if (message.replyTo) {
-        setLoadingOriginal(true);
+    const loadThreadProfiles = async () => {
+      const unique = Array.from(
+        new Set(
+          thread.flatMap((x) => [x.msg.from, x.msg.to]).filter((v) => typeof v === 'string' && v.length > 0)
+        )
+      );
+      const map = new Map<string, NostrProfile>();
+
+      // Keep this lightweight: threads are usually small; do sequential to avoid relay bursts.
+      for (const pubkey of unique) {
         try {
-          const allMessages = await nostrService.getMessages();
-          const original = allMessages.find(m => m.id === message.replyTo);
-          if (original) {
-            setOriginalMessage(original);
-          }
-        } catch (error) {
-          console.error('Failed to load original message:', error);
-        } finally {
-          setLoadingOriginal(false);
+          const p = await nostrService.getProfile(pubkey);
+          if (p) map.set(pubkey, p);
+        } catch {
+          // ignore
         }
-      } else {
-        setOriginalMessage(null);
       }
-    };
-    loadOriginalMessage();
-  }, [message.replyTo]);
 
-  const displayName = nostrService.getDisplayName(senderProfile, message.from);
-  const secondaryDisplay = nostrService.getSecondaryDisplay(senderProfile);
-  const shouldShowPubkey = nostrService.shouldShowPubkey(senderProfile);
+      setThreadProfiles(map);
+    };
+
+    loadThreadProfiles();
+  }, [thread]);
+
   const truncatePubkey = (pubkey: string) => {
     return `${pubkey.slice(0, 16)}...${pubkey.slice(-16)}`;
+  };
+
+  const getAvatar = (pubkey: string) => {
+    const profile = threadProfiles.get(pubkey);
+    const name = nostrService.getDisplayName(profile, pubkey);
+    if (profile?.picture) {
+      return (
+        <img
+          src={profile.picture}
+          alt={name}
+          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+        />
+      );
+    }
+
+    return (
+      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+        <span className="text-purple-600 font-semibold">{name[0]?.toUpperCase() ?? '?'}</span>
+      </div>
+    );
   };
 
   const copyToClipboard = async (text: string, label: string) => {
@@ -165,93 +225,108 @@ export const MessageView: React.FC<MessageViewProps> = ({ message, onBack, onRep
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {/* Original Message (if this is a reply) */}
-        {message.replyTo && originalMessage && (
-          <div className="bg-gray-50 border-b-2 border-gray-300 px-6 py-4">
-            <div className="text-xs text-gray-500 uppercase font-semibold mb-2 flex items-center">
-              <Reply className="w-3 h-3 mr-1" />
-              Original Message
-            </div>
-            <div className="bg-white rounded-lg border border-gray-300 p-4">
-              <div className="font-semibold text-gray-700 text-sm mb-2">{originalMessage.subject}</div>
-              <div className="text-sm text-gray-600 mb-3 line-clamp-3">{originalMessage.content}</div>
-              <div className="text-xs text-gray-500">
-                From: {nostrService.getDisplayName(undefined, originalMessage.from)} • {new Date(originalMessage.timestamp).toLocaleDateString()}
+        {thread.length > 1 ? (
+          <>
+            {/* Subject Header */}
+            <div className="bg-purple-50 border-b border-purple-100 px-6 py-4">
+              <h1 className="text-2xl font-bold text-gray-900 break-words">{message.subject}</h1>
+              <div className="mt-2 text-sm text-purple-700 flex items-center">
+                <Reply className="w-4 h-4 mr-1" />
+                Thread ({thread.length} messages)
               </div>
             </div>
-          </div>
-        )}
-        {message.replyTo && loadingOriginal && (
-          <div className="bg-gray-50 border-b-2 border-gray-300 px-6 py-4">
-            <div className="text-xs text-gray-500 uppercase font-semibold mb-2 flex items-center">
-              <Reply className="w-3 h-3 mr-1" />
-              Loading Original Message...
-            </div>
-          </div>
-        )}
 
-        {/* Subject Header */}
-        <div className="bg-purple-50 border-b border-purple-100 px-6 py-4">
-          <h1 className="text-2xl font-bold text-gray-900 break-words">{message.subject}</h1>
-          {message.replyTo && (
-            <div className="mt-2 text-sm text-purple-600 italic flex items-center">
-              <Reply className="w-4 h-4 mr-1" />
-              Reply to message
-            </div>
-          )}
-        </div>
+            {/* Thread */}
+            <div className="px-6 py-6 space-y-4">
+              {thread.map(({ msg: m, depth }) => {
+                const isFocus = m.id === message.id;
 
-        {/* Message Metadata */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-3 min-w-0 flex-1">
-              {senderProfile?.picture ? (
-                <img 
-                  src={senderProfile.picture} 
-                  alt={displayName}
-                  className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-purple-600 font-semibold text-lg">
-                    {displayName[0].toUpperCase()}
-                  </span>
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="font-semibold text-gray-900 truncate">{displayName}</div>
-                {secondaryDisplay && (
-                  <div className="text-sm text-gray-600 truncate">{secondaryDisplay}</div>
-                )}
-                {shouldShowPubkey && (
-                  <div className="text-sm text-gray-500 font-mono truncate">{truncatePubkey(message.from)}</div>
-                )}
-                {senderProfile?.nip05 && senderProfile.nip05valid && (
-                  <div className="text-xs text-green-600 flex items-center mt-1">
-                    <span className="mr-1">✓</span>
-                    Verified
+                const fromProfile = threadProfiles.get(m.from);
+                const toProfile = threadProfiles.get(m.to);
+
+                const fromName = nostrService.getDisplayName(fromProfile, m.from);
+                const toName = nostrService.getDisplayName(toProfile, m.to);
+
+                return (
+                  <div
+                    key={m.id}
+                    className={`rounded-lg border p-4 ${
+                      isFocus ? 'border-purple-300 bg-purple-50' : 'border-gray-200 bg-white'
+                    }`}
+                    style={{ marginLeft: `${Math.min(depth * 24, 96)}px` }}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 min-w-0">
+                        {getAvatar(m.from)}
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-gray-900 break-words">
+                            {m.subject}
+                            {depth > 0 && <span className="ml-2 text-xs text-purple-700">↪ Reply</span>}
+                            {isFocus && <span className="ml-2 text-xs text-purple-700">(selected)</span>}
+                          </div>
+                          <div className="mt-1 text-sm text-gray-700 truncate">
+                            <span className="font-medium">From:</span> {fromName}
+                          </div>
+                          <div className="text-sm text-gray-700 truncate">
+                            <span className="font-medium">To:</span> {toName}
+                          </div>
+                          <div className="mt-1 text-xs text-gray-500 font-mono truncate">
+                            {truncatePubkey(m.from)} → {truncatePubkey(m.to)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 flex-shrink-0 whitespace-nowrap">
+                        {new Date(m.timestamp).toLocaleString()}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 text-gray-800 whitespace-pre-wrap break-all leading-relaxed">
+                      {m.content}
+                    </div>
                   </div>
-                )}
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Single message view */}
+            <div className="bg-purple-50 border-b border-purple-100 px-6 py-4">
+              <h1 className="text-2xl font-bold text-gray-900 break-words">{message.subject}</h1>
+            </div>
+
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3 min-w-0">
+                  {getAvatar(message.from)}
+                  <div className="min-w-0">
+                    <div className="font-semibold text-gray-900 truncate">
+                      {nostrService.getDisplayName(threadProfiles.get(message.from), message.from)}
+                    </div>
+                    <div className="text-sm text-gray-600 truncate">
+                      <span className="font-medium">To:</span>{' '}
+                      {nostrService.getDisplayName(threadProfiles.get(message.to), message.to)}
+                    </div>
+                    <div className="text-xs text-gray-500 font-mono truncate">
+                      {truncatePubkey(message.from)} → {truncatePubkey(message.to)}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm text-gray-500 flex-shrink-0 whitespace-nowrap">
+                  {new Date(message.timestamp).toLocaleString()}
+                </div>
               </div>
             </div>
-            <div className="text-sm text-gray-500 ml-4 flex-shrink-0">
-              {new Date(message.timestamp).toLocaleString()}
-            </div>
-          </div>
-          {shouldShowPubkey && (
-            <div className="mt-3 ml-15">
-              <div className="text-sm text-gray-500 mb-1">To</div>
-              <div className="font-mono text-sm text-gray-800 break-words">{message.to}</div>
-            </div>
-          )}
-        </div>
 
-        {/* Message Content */}
-        <div className="px-6 py-6">
-          <div className="prose max-w-none">
-            <div className="text-gray-800 whitespace-pre-wrap break-all leading-relaxed">{message.content}</div>
-          </div>
-        </div>
+            <div className="px-6 py-6">
+              <div className="prose max-w-none">
+                <div className="text-gray-800 whitespace-pre-wrap break-all leading-relaxed">
+                  {message.content}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

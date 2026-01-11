@@ -528,8 +528,7 @@ export class NostrService {
 
     // Load from cache first
     const cachedMessages = this.loadMessagesFromCache();
-    const lastFetch = this.getLastFetchTimestamp();
-    const now = Date.now();
+
 
     // Use a map for O(1) dedup and updates.
     const messageById = new Map<string, DecryptedMessage>();

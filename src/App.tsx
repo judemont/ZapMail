@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Login } from './components/Login';
 import { Sidebar } from './components/Sidebar';
 import { MessageList } from './components/MessageList';
@@ -18,6 +18,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState<{ current: number; total: number } | null>(null);
   const [replyToMessage, setReplyToMessage] = useState<DecryptedMessage | undefined>();
+  const backgroundRefreshingRef = useRef(false);
 
   // Check if already logged in on mount
   useEffect(() => {
@@ -26,7 +27,7 @@ function App() {
     }
   }, []);
 
-  const loadMessages = async (forceRefresh: boolean = false) => {
+  const loadMessagesForeground = async (forceRefresh: boolean = false) => {
     setLoading(true);
     setLoadingProgress(null);
     try {
@@ -42,11 +43,26 @@ function App() {
     }
   };
 
+  const loadMessagesBackground = async () => {
+    // Background refresh should not steal focus or show progress UI.
+    // Also avoid overlapping refreshes.
+    if (loading || backgroundRefreshingRef.current) return;
+    backgroundRefreshingRef.current = true;
+    try {
+      const fetchedMessages = await nostrService.getMessages(undefined, false);
+      setMessages(fetchedMessages);
+    } catch (error) {
+      console.error('Background refresh failed:', error);
+    } finally {
+      backgroundRefreshingRef.current = false;
+    }
+  };
+
   useEffect(() => {
     if (isLoggedIn) {
-      loadMessages();
+      loadMessagesForeground();
       // Refresh messages every 30 seconds
-      const interval = setInterval(loadMessages, 30000);
+      const interval = setInterval(loadMessagesBackground, 30000);
       return () => clearInterval(interval);
     }
   }, [isLoggedIn]);
@@ -72,7 +88,7 @@ function App() {
   const handleMessageSent = () => {
     setCurrentFolder('sent');
     setReplyToMessage(undefined);
-    loadMessages();
+    loadMessagesForeground(true);
   };
 
   const handleReply = (message: DecryptedMessage) => {
@@ -124,7 +140,7 @@ function App() {
                   {currentFolder}
                 </h2>
                 <button
-                  onClick={() => loadMessages()}
+                  onClick={() => loadMessagesForeground(true)}
                   disabled={loading}
                   className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
                   title="Rechercher nouveaux messages"
@@ -167,6 +183,7 @@ function App() {
               {selectedMessage ? (
                 <MessageView 
                   message={selectedMessage} 
+                  allMessages={messages}
                   onBack={() => setSelectedMessage(null)}
                   onReply={handleReply}
                 />
