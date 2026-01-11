@@ -1,4 +1,4 @@
-import { SimplePool, nip19, getPublicKey, nip17 } from 'nostr-tools';
+import { SimplePool, nip19, getPublicKey, nip44, finalizeEvent } from 'nostr-tools';
 import type { DecryptedMessage, NostrProfile, Contact } from './types';
 
 const RELAYS = [
@@ -363,11 +363,9 @@ export class NostrService {
         
         // Generate random keys for the wrapper
         const wrapperKey = crypto.getRandomValues(new Uint8Array(32));
-        const { getEventHash, finalizeEvent, nip44 } = await import('nostr-tools');
         const wrapperPubkey = getPublicKey(wrapperKey);
         
         // Sign the rumor
-        rumor.id = getEventHash(rumor);
         const signedRumor = await window.nostr.signEvent(rumor);
         
         // Create the seal (kind 13)
@@ -398,7 +396,9 @@ export class NostrService {
         wrappedEvent = {
           kind: 1059,
           content: giftWrapContent,
-          tags: [['p', recipientPubkey]],
+          // NIP-17 privacy: do not include recipient routing metadata in cleartext.
+          // Delivery is done by clients fetching gift wraps and attempting local decryption.
+          tags: [],
           created_at: Math.floor(Date.now() / 1000),
           pubkey: wrapperPubkey
         };
@@ -409,17 +409,41 @@ export class NostrService {
         if (!this.secretKey) {
           throw new Error('Not logged in');
         }
-        
-        // Use nip17.wrapEvent to create the properly wrapped NIP-17 message
-        const replyToObj = replyTo ? { eventId: replyTo } : undefined;
-        
-        wrappedEvent = nip17.wrapEvent(
-          this.secretKey,
-          { publicKey: recipientPubkey },
-          content,
-          subject,
-          replyToObj
-        );
+
+        // Wrap manually using NIP-44 + ephemeral gift wrap key.
+        // This matches the extension path and avoids API/version mismatches in nip17 helpers.
+        const signedRumor = finalizeEvent(rumor, this.secretKey);
+
+        // Seal (kind 13): encrypt the signed rumor to the recipient using sender<->recipient conversation key
+        const sealContent = JSON.stringify(signedRumor);
+        const senderToRecipientKey = nip44.getConversationKey(this.secretKey, recipientPubkey);
+        const encryptedSeal = nip44.encrypt(sealContent, senderToRecipientKey);
+
+        const sealTemplate: any = {
+          kind: 13,
+          content: encryptedSeal,
+          tags: [],
+          created_at: Math.floor(Date.now() / 1000),
+          pubkey: this.publicKey
+        };
+        const signedSeal = finalizeEvent(sealTemplate, this.secretKey);
+
+        // Gift wrap (kind 1059): encrypt the seal to the recipient using wrapper<->recipient conversation key
+        const wrapperKey = crypto.getRandomValues(new Uint8Array(32));
+        const wrapperPubkey = getPublicKey(wrapperKey);
+        const wrapperToRecipientKey = nip44.getConversationKey(wrapperKey, recipientPubkey);
+        const giftWrapContent = nip44.encrypt(JSON.stringify(signedSeal), wrapperToRecipientKey);
+
+        const giftWrapTemplate: any = {
+          kind: 1059,
+          content: giftWrapContent,
+          // NIP-17 privacy: do not include recipient routing metadata in cleartext.
+          tags: [],
+          created_at: Math.floor(Date.now() / 1000),
+          pubkey: wrapperPubkey
+        };
+
+        wrappedEvent = finalizeEvent(giftWrapTemplate, wrapperKey);
       }
       
       // Publish the wrapped event
@@ -468,12 +492,12 @@ export class NostrService {
       // Determine fetch range
       // IMPORTANT: NIP-17 gift wrap events (kind 1059) may have randomized timestamps
       // for privacy, so we cannot rely on 'since' to catch new messages!
-      // We always fetch from far back and rely on deduplication by ID
+      // Delivery is done by attempting local decryption; do NOT filter by recipient tags.
+      // We fetch from far back and rely on deduplication by ID.
       const since = Math.floor(Date.now() / 1000) - (100 * 24 * 60 * 60);
       
       const wrappedEvents = await this.pool.querySync(RELAYS, {
         kinds: [1059],
-        '#p': [this.publicKey],
         since,
         limit: 1000
       });
@@ -529,7 +553,16 @@ export class NostrService {
               continue;
             }
           } else if (this.secretKey) {
-            rumor = nip17.unwrapEvent(wrappedEvent, this.secretKey);
+            // Manual unwrapping using NIP-44 to match wrapping logic above.
+            // 1) Decrypt gift wrap using recipient<->wrapper conversation key.
+            const wrapperToRecipientKey = nip44.getConversationKey(this.secretKey, wrappedEvent.pubkey);
+            const sealJson = nip44.decrypt(wrappedEvent.content, wrapperToRecipientKey);
+            const seal = JSON.parse(sealJson);
+
+            // 2) Decrypt seal using recipient<->sender conversation key.
+            const senderToRecipientKey = nip44.getConversationKey(this.secretKey, seal.pubkey);
+            const rumorJson = nip44.decrypt(seal.content, senderToRecipientKey);
+            rumor = JSON.parse(rumorJson);
           } else {
             continue;
           }
