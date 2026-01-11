@@ -297,15 +297,15 @@ export class NostrService {
     }
   }
 
-  private getLastFetchTimestamp(): number {
-    try {
-      const lastFetchKey = this.getLastFetchKey();
-      const timestamp = localStorage.getItem(lastFetchKey);
-      return timestamp ? parseInt(timestamp, 10) : 0;
-    } catch (error) {
-      return 0;
-    }
-  }
+  // private getLastFetchTimestamp(): number {
+  //   try {
+  //     const lastFetchKey = this.getLastFetchKey();
+  //     const timestamp = localStorage.getItem(lastFetchKey);
+  //     return timestamp ? parseInt(timestamp, 10) : 0;
+  //   } catch (error) {
+  //     return 0;
+  //   }
+  // }
 
   private saveSentMessageLocally(
     recipientPubkey: string,
