@@ -145,7 +145,7 @@ function App() {
                 <div className="flex-1 flex items-center justify-center p-6">
                   <div className="text-center w-full max-w-md">
                     <div className="text-gray-600 mb-4">
-                      {loadingProgress ? 'Décryptage des messages...' : 'Chargement des messages...'}
+                        {loadingProgress ? 'Decrypting messages...' : 'Loading messages...'}
                     </div>
                     {loadingProgress && (
                       <>

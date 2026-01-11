@@ -1,6 +1,6 @@
 # ZapMail ⚡📧
 
-A secure, email-like messaging application built on the Nostr protocol. ZapMail provides a familiar Gmail/Outlook-style interface for sending encrypted direct messages using NIP-17 DM standard.
+A secure, email-like messaging application built on the Nostr protocol. ZapMail provides a familiar Gmail/Outlook-style interface for sending encrypted direct messages using the NIP-17 standard (Private Direct Messages with gift wrapping).
 
 ## ⚠️ Security Warning
 
@@ -11,20 +11,61 @@ This is an experimental client for educational and testing purposes. For product
 ## Features
 
 - 📧 **Email-like Interface**: Familiar inbox, sent folders, and compose view
-- 🔐 **End-to-End Encryption**: Messages encrypted using NIP-04 encryption
-- 🔑 **NSEC Authentication**: Secure login with Nostr private keys
-- ⚡ **Nostr Protocol**: Decentralized messaging over Nostr relays
+- 🔐 **End-to-End Encryption**: Messages encrypted using NIP-44 (NIP-17 gift wrapping)
+- 🔑 **NSEC/Extension Authentication**: Login with Nostr private keys or browser extensions (Alby, nos2x)
+- ⚡ **Nostr Protocol**: Decentralized messaging over multiple Nostr relays
 - 🎨 **Modern UI**: Clean, responsive design with Tailwind CSS
 - 🔄 **Real-time Updates**: Automatic message refresh every 30 seconds
+- ✅ **NIP-05 Verification**: Display verified human-readable identifiers
+
+## Technology
+
+### Nostr Protocol
+
+Nostr (Notes and Other Stuff Transmitted by Relays) is a simple, open protocol that enables truly decentralized social networking. Unlike centralized platforms, Nostr:
+
+- **No central server**: Messages are distributed across multiple independent relays
+- **Censorship-resistant**: No single entity can block or delete your messages
+- **Portable identity**: Your identity (keypair) works across all Nostr applications
+- **Simple protocol**: Easy to implement and understand
+
+### NIP-17: Private Direct Messages
+
+ZapMail uses **NIP-17** (Private Direct Messages) which provides enhanced privacy over the older NIP-04 standard:
+
+**How NIP-17 Works:**
+
+1. **Rumor (kind 14)**: The actual message content with subject and recipient
+2. **Seal (kind 13)**: The signed rumor, encrypted to the recipient
+3. **Gift Wrap (kind 1059)**: The seal encrypted with a one-time ephemeral key
+
+**Key Benefits:**
+
+- 🔒 **Minimal metadata leakage**: Timestamps are randomized, recipient is hidden
+- 🔐 **NIP-44 encryption**: Modern encryption scheme (XChaCha20 + HMAC-SHA256)
+- 👁️ **Sender privacy**: Messages appear to come from random ephemeral keys
+- 🚫 **Relay can't correlate**: Impossible for relays to link sender and recipient
+
+### NIP-05: DNS-based Verification
+
+Users can verify their identity using a human-readable identifier (like email):
+
+- Format: `username@domain.com`
+- Verified through DNS records
+- No centralized control - domain owners can verify identities
+- Easier to share than long public keys
 
 ## Tech Stack
 
-- **React** + **TypeScript** - UI framework
-- **Vite** - Build tool and dev server
-- **Tailwind CSS** - Styling
-- **nostr-tools** - Nostr protocol implementation
-- **Lucide React** - Icons
-- **date-fns** - Date formatting
+- **React** + **TypeScript** - UI framework with type safety
+- **Vite** - Fast build tool and dev server
+- **Tailwind CSS** - Utility-first styling
+- **nostr-tools** - Official Nostr protocol implementation
+- **NIP-17** - Private Direct Messages with gift wrapping
+- **NIP-44** - Modern encryption scheme (XChaCha20-Poly1305)
+- **NIP-05** - DNS-based identity verification
+- **Lucide React** - Beautiful icon library
+- **date-fns** - Modern date formatting
 
 ## Getting Started
 
@@ -65,28 +106,18 @@ npm run dev
 
 4. **Logout**: Click the "Logout" button to clear your session
 
-## Project Structure
 
-```
-src/
-├── components/
-│   ├── Login.tsx          # Login screen with NSEC input
-│   ├── Sidebar.tsx        # Navigation sidebar
-│   ├── MessageList.tsx    # List of messages
-│   ├── MessageView.tsx    # Single message viewer
-│   └── Compose.tsx        # New message composer
-├── nostrService.ts        # Nostr protocol service
-├── types.ts               # TypeScript type definitions
-├── App.tsx                # Main application component
-└── main.tsx               # Application entry point
-```
 
 ## Security Notes
 
-- Your NSEC private key is stored only in browser memory during your session
-- All messages are encrypted end-to-end using NIP-04
-- Never share your NSEC key with anyone
-- The application doesn't store any data on external servers
+- **Private Key Storage**: Your NSEC is encrypted in localStorage using AES-GCM with PBKDF2 key derivation
+- **End-to-End Encryption**: All messages use NIP-44 encryption (XChaCha20-Poly1305 + HMAC-SHA256)
+- **Gift Wrapping**: NIP-17 provides metadata protection with ephemeral keys
+- **Browser Extension Support**: Use Alby or nos2x for additional security (your key never touches the app)
+- **No Server Storage**: Everything runs client-side, no data sent to external servers
+- **Multi-Relay**: Messages distributed across 5+ relays for redundancy
+
+**Important**: Never share your NSEC key with anyone. Treat it like a password - anyone with your NSEC can send messages as you.
 
 ## Building for Production
 
@@ -103,86 +134,19 @@ The built files will be in the `dist/` directory.
 - Preview production build: `npm run preview`
 - Lint: `npm run lint`
 
-## Future Enhancements
-
-- [ ] Full NIP-17 gift wrapping implementation
-- [ ] Contact list management
-- [ ] Message search functionality
-- [ ] Attachments support
-- [ ] Multiple relay management
-- [ ] Profile pictures and metadata
-- [ ] Message drafts
-- [ ] Starred/important messages
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## License
-
-MIT License - feel free to use this project for your own purposes.
-
 ## Resources
 
 - [Nostr Protocol](https://nostr.com/)
-- [NIP-04 (Encrypted Direct Messages)](https://github.com/nostr-protocol/nips/blob/master/04.md)
-- [NIP-17 (Private Direct Messages)](https://github.com/nostr-protocol/nips/blob/master/17.md)
-- [nostr-tools](https://github.com/nbd-wtf/nostr-tools)
+- [NIP-17 (Private Direct Messages)](https://github.com/nostr-protocol/nips/blob/master/17.md) - Gift wrapping standard
+- [NIP-44 (Encrypted Payloads)](https://github.com/nostr-protocol/nips/blob/master/44.md) - Encryption scheme
+- [NIP-05 (DNS-based Verification)](https://github.com/nostr-protocol/nips/blob/master/05.md) - Identity verification
+- [NIP-59 (Gift Wrap)](https://github.com/nostr-protocol/nips/blob/master/59.md) - Base gift wrapping spec
+- [nostr-tools](https://github.com/nbd-wtf/nostr-tools) - JavaScript library
+- [Email is Broken — Can Nostr Fix It?](https://habla.news/a/naddr1qvzqqqr4gupzppna0k8s3az5vx8l2rkfs80p5e46c52fmz938pvf5zrp0zwwtvz0qqsk2mtpd9kz66tn9438ymmtv4hz6ttrv9hz6mn0wd68yttxd9uz66t5e5vhcr) - Article explaining the vision
 
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```

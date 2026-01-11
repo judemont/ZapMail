@@ -94,37 +94,45 @@ export const About: React.FC<AboutProps> = ({ onBack }) => {
             </div>
           </section>
 
-          <section className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">How It Works</h2>
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
-              <p className="text-gray-700 mb-2">
-                <strong>1. Authentication:</strong> Log in with your Nostr private key (nsec). Your key never 
-                leaves your device.
-              </p>
-              <p className="text-gray-700 mb-2">
-                <strong>2. Encryption:</strong> Messages are encrypted using NIP-17 gift wrapping, which provides 
-                strong privacy with minimal metadata.
-              </p>
-              <p className="text-gray-700 mb-2">
-                <strong>3. Distribution:</strong> Encrypted messages are distributed across multiple Nostr relays 
-                for redundancy.
-              </p>
-              <p className="text-gray-700">
-                <strong>4. Delivery:</strong> Recipients decrypt messages using their private key. Only the 
-                intended recipient can read them.
-              </p>
-            </div>
-          </section>
-
-
+   
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Technology Stack</h2>
-            <ul className="list-disc list-inside text-gray-700 space-y-2">
-              <li><strong>Nostr Protocol:</strong> Decentralized social networking protocol</li>
-              <li><strong>NIP-17:</strong> Private Direct Messages with gift wrapping (kind 1059)</li>
-              <li><strong>NIP-05:</strong> DNS-based verification for human-readable identifiers</li>
-              <li><strong>Multi-Relay:</strong> Connected to multiple relays for redundancy and censorship resistance</li>
-            </ul>
+            <div className="space-y-3">
+              <div>
+                <strong className="text-purple-600">Nostr Protocol:</strong>
+                <p className="text-gray-700 text-sm">
+                  Decentralized social networking protocol with no central authority or servers.
+                </p>
+              </div>
+              <div>
+                <strong className="text-purple-600">NIP-17 (Private Direct Messages):</strong>
+                <p className="text-gray-700 text-sm">
+                  Gift wrapping standard that provides enhanced privacy through triple-layer encryption 
+                  and metadata protection.
+                </p>
+              </div>
+              <div>
+                <strong className="text-purple-600">NIP-44 (Encrypted Payloads):</strong>
+                <p className="text-gray-700 text-sm">
+                  Modern encryption scheme using XChaCha20-Poly1305 with HMAC-SHA256. Much more secure 
+                  than the legacy NIP-04 standard.
+                </p>
+              </div>
+              <div>
+                <strong className="text-purple-600">NIP-05 (DNS-based Verification):</strong>
+                <p className="text-gray-700 text-sm">
+                  Human-readable identifiers (like user@domain.com) verified through DNS without giving 
+                  domain owners control over messages.
+                </p>
+              </div>
+              <div>
+                <strong className="text-purple-600">Multi-Relay Architecture:</strong>
+                <p className="text-gray-700 text-sm">
+                  Connected to 5+ independent relays for redundancy, censorship resistance, and improved 
+                  message delivery.
+                </p>
+              </div>
+            </div>
           </section>
 
 
